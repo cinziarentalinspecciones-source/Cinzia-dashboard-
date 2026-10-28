@@ -834,6 +834,7 @@ table.op-tbl{width:100%;border-collapse:collapse;min-width:640px}
   <button class="top-tab" data-tab="costos">💰 Gastos Rental</button>
   <button class="top-tab" data-tab="postventa">🛠 Postventa</button>
   <button class="top-tab" data-tab="presupuestos">🔧 Presupuestos</button>
+  <button class="top-tab" data-tab="reservas" id="tabReservas">📅 Reservas</button>
 </div>
 
 <div class="app-shell" id="appShell">
@@ -1335,6 +1336,38 @@ table.op-tbl{width:100%;border-collapse:collapse;min-width:640px}
           <span class="accordion-arrow" id="rotRegistrosArrow" style="margin-left:auto;">▼</span>
         </div>
         <div id="rotRegistrosList" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- PESTAÑA RESERVAS — protegida con contraseña -->
+  <div class="main" id="mainReservas" style="display:none; flex-direction:column; align-items:center; justify-content:center; min-height:80vh;">
+    <!-- Pantalla de contraseña -->
+    <div id="reservasLock" style="display:flex;flex-direction:column;align-items:center;gap:16px;max-width:360px;width:100%;padding:32px;">
+      <div style="font-size:32px;">🔒</div>
+      <div style="font-size:17px;font-weight:700;color:var(--text);">Acceso restringido</div>
+      <div style="font-size:13px;color:var(--muted);text-align:center;">Esta sección requiere contraseña para acceder al calendario de reservas.</div>
+      <input type="password" id="reservasPassInput" placeholder="Contraseña"
+        style="width:100%;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:11px 14px;font-size:14px;outline:none;"
+        onkeydown="if(event.key==='Enter') verificarPassReservas()">
+      <button class="btn btn-primary btn-block" onclick="verificarPassReservas()">Ingresar</button>
+      <div id="reservasPassError" style="color:var(--red);font-size:12px;display:none;">Contraseña incorrecta</div>
+    </div>
+    <!-- Calendario una vez desbloqueado -->
+    <div id="reservasContent" style="display:none;width:100%;height:100%;flex-direction:column;">
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--border);flex-shrink:0;">
+        <span style="font-size:14px;font-weight:700;">📅 Calendario de Reservas</span>
+        <a id="reservasCalLink" href="https://calendar.google.com" target="_blank"
+          style="font-size:11px;color:var(--accent);margin-left:auto;text-decoration:none;">Abrir en Google Calendar ↗</a>
+        <button onclick="cerrarReservas()" style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:11px;padding:4px 10px;cursor:pointer;">🔒 Cerrar sesión</button>
+      </div>
+      <div style="flex:1;overflow:hidden;">
+        <iframe id="reservasIframe"
+          src=""
+          style="width:100%;height:100%;border:none;min-height:calc(100vh - 120px);"
+          frameborder="0" scrolling="no">
+        </iframe>
       </div>
     </div>
   </div>
@@ -2222,7 +2255,7 @@ table.op-tbl{width:100%;border-collapse:collapse;min-width:640px}
     <div class="op-land-brand">Gestión operativa</div>
     <h2 class="op-land-title" style="font-size:26px;">¿Desde dónde estás ingresando?</h2>
     <p class="op-land-sub" style="margin-bottom:30px;">Cada frame está pensado para su momento del día</p>
-    <div class="op-opt-grid">
+    <div class="op-opt-grid" style="grid-template-columns:repeat(3,1fr);">
       <button class="op-opt" data-act="frame" data-f="cel">
         <span class="op-land-ico">📱</span>
         <span class="op-land-h">Tour de terreno</span>
@@ -2232,6 +2265,12 @@ table.op-tbl{width:100%;border-collapse:collapse;min-width:640px}
         <span class="op-land-ico">🖥️</span>
         <span class="op-land-h">Reunión / Indicadores</span>
         <span class="op-land-p">PC o TV: indicadores de la semana, revisar y validar el tour, plan de acción y calendarios.</span>
+      </button>
+      <button class="op-opt" data-act="frame" data-f="reservas">
+        <span class="op-land-ico">📅</span>
+        <span class="op-land-h">Reservas</span>
+        <span class="op-land-p">Calendario de reservas de la flota. Acceso con contraseña.</span>
+        <span class="op-land-lock">Acceso con contraseña</span>
       </button>
     </div>
   </div>
@@ -2255,6 +2294,49 @@ table.op-tbl{width:100%;border-collapse:collapse;min-width:640px}
       <div class="op-tabc on" id="opTabInd"></div>
       <div class="op-tabc" id="opTabTour"></div>
       <div class="op-tabc" id="opTabCal" style="overflow:auto;"></div>
+    </div>
+  </div>
+
+
+  <!-- Frame reservas -->
+  <div class="op-frame" id="opReservas" style="display:none;">
+    <!-- Pantalla de contraseña -->
+    <div id="opResLock" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:18px;padding:40px;">
+      <div style="font-size:44px;">📅</div>
+      <div style="font-size:20px;font-weight:800;">Calendario de Reservas</div>
+      <div style="font-size:13px;color:var(--fog);text-align:center;max-width:320px;">Esta sección requiere contraseña de acceso.</div>
+      <div style="width:100%;max-width:320px;display:flex;flex-direction:column;gap:10px;">
+        <input type="password" id="opResPass" placeholder="Contraseña"
+          style="width:100%;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:12px 14px;font-size:15px;font-family:inherit;outline:none;text-align:center;letter-spacing:.12em;"
+          onkeydown="if(event.key==='Enter') opVerificarPassRes()">
+        <button onclick="opVerificarPassRes()"
+          style="width:100%;padding:12px;background:#C41E1E;color:white;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">
+          Ingresar
+        </button>
+        <div id="opResPassError" style="color:#ff4444;font-size:12px;text-align:center;display:none;">Contraseña incorrecta</div>
+      </div>
+    </div>
+    <!-- Calendario -->
+    <div id="opResContent" style="display:none;flex-direction:column;height:100%;">
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 16px;border-bottom:1px solid var(--border);flex-shrink:0;">
+        <select onchange="opCambiarVistaRes(this.value)"
+          style="background:var(--panel-2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px 10px;font-size:12px;">
+          <option value="WEEK">Semana</option>
+          <option value="MONTH">Mes</option>
+          <option value="AGENDA">Agenda</option>
+          <option value="DAY">Día</option>
+        </select>
+        <a href="https://calendar.google.com" target="_blank"
+          style="font-size:11px;color:var(--accent);margin-left:auto;text-decoration:none;">Abrir en Google Calendar ↗</a>
+        <button onclick="opCerrarSesionRes()"
+          style="background:none;border:1px solid var(--border);border-radius:5px;color:var(--muted);font-size:11px;padding:4px 10px;cursor:pointer;">
+          🔒 Cerrar sesión
+        </button>
+      </div>
+      <iframe id="opResIframe" src=""
+        style="flex:1;border:none;width:100%;min-height:0;"
+        frameborder="0">
+      </iframe>
     </div>
   </div>
 
@@ -3300,9 +3382,14 @@ function buildVehicles(data){
   return Object.entries(byPatente).map(([patente, lista]) => {
     // Si no hay inspecciones, crear un vehículo vacío con los datos del mapa
     const movilNum = PATENTE_A_MOVIL[patente];
-    const zonaMovil = [2,7,9,11,15,20,21,22].includes(movilNum) ? "CBA"
-                    : [8,10,17].includes(movilNum) ? "BRC"
-                    : [12,14,16,18,19].includes(movilNum) ? "BSAS" : "";
+    // Zona hardcodeada para móviles base; para móviles nuevos (flotaAgregados)
+    // se lee de ZonasMoviles (Sheets) o del localStorage de datos técnicos.
+    const zonaMovilBase = [2,7,9,11,15,20,21,22].includes(movilNum) ? "CBA"
+                        : [8,10,17].includes(movilNum) ? "BRC"
+                        : [12,14,16,18,19].includes(movilNum) ? "BSAS" : "";
+    // Para móviles agregados (no están en la lista hardcodeada), buscar en ZonasMoviles
+    const zonaMovilSheet = (data.zonasMoviles||[]).find(z=>z.patente===patente)?.zona || "";
+    const zonaMovil = zonaMovilBase || zonaMovilSheet || "";
 
     const v = lista.length > 0 ? lista[0] : {
       patente, movil: movilNum, km: 0, zona: zonaMovil,
@@ -6338,6 +6425,8 @@ function switchTab(tab){
   if(pvEl) pvEl.style.display = tab==="postventa" ? "flex" : "none";
   const presEl = document.getElementById("mainPresupuestos");
   if(presEl) presEl.style.display = tab==="presupuestos" ? "flex" : "none";
+  const resEl = document.getElementById("mainReservas");
+  if(resEl) resEl.style.display = tab==="reservas" ? "flex" : "none";
 
   if(tab === "reclamos") renderReclamosTab();
   if(tab === "kanban")   { guardarEstadoLocal(); if(RAW_DATA) renderKanbanTab(); }
@@ -6346,6 +6435,7 @@ function switchTab(tab){
   if(tab === "costos")   { guardarEstadoLocal(); renderCostosTab(); }
   if(tab === "presupuestos") { initPresupuestos(); }
   if(tab === "postventa") { renderPostventaTab(); }
+  if(tab === "reservas") { abrirPestañaReservas(); }
 }
 
 function renderKanbanTab(){
@@ -8812,6 +8902,116 @@ async function sincronizarReclamosASheets(){
     showToast("Error al sincronizar: " + e.message, true);
   }
 }
+
+/* ── PESTAÑA RESERVAS ──────────────────────────────────────────────────── */
+// URL del calendario de Google para incrustar — cambiala por la tuya real
+// Formato: https://calendar.google.com/calendar/embed?src=TU_CALENDARIO_ID&ctz=America%2FArgentina%2FBuenos_Aires
+const RESERVAS_CAL_URL = "https://calendar.google.com/calendar/embed?src=primary&ctz=America%2FArgentina%2FBuenos_Aires&showTitle=0&showNav=1&showDate=1&showPrint=0&showTabs=1&showCalendars=0&mode=WEEK";
+const RESERVAS_PASS = "Cinziareservas";
+let _reservasDesbloqueadas = false;
+
+function abrirPestañaReservas(){
+  if(_reservasDesbloqueadas){
+    // Ya desbloqueado — mostrar contenido directo
+    document.getElementById("reservasLock").style.display = "none";
+    document.getElementById("reservasContent").style.display = "flex";
+    // Cargar iframe si aún no tiene src
+    const iframe = document.getElementById("reservasIframe");
+    if(!iframe.src || iframe.src === window.location.href) iframe.src = RESERVAS_CAL_URL;
+  } else {
+    document.getElementById("reservasLock").style.display = "flex";
+    document.getElementById("reservasContent").style.display = "none";
+    document.getElementById("reservasPassInput").value = "";
+    document.getElementById("reservasPassError").style.display = "none";
+    setTimeout(()=>document.getElementById("reservasPassInput").focus(), 100);
+  }
+}
+
+function verificarPassReservas(){
+  const input = document.getElementById("reservasPassInput").value;
+  const error = document.getElementById("reservasPassError");
+  if(input === RESERVAS_PASS){
+    _reservasDesbloqueadas = true;
+    error.style.display = "none";
+    document.getElementById("reservasLock").style.display = "none";
+    document.getElementById("reservasContent").style.display = "flex";
+    const iframe = document.getElementById("reservasIframe");
+    iframe.src = RESERVAS_CAL_URL;
+  } else {
+    error.style.display = "block";
+    document.getElementById("reservasPassInput").value = "";
+    document.getElementById("reservasPassInput").focus();
+    setTimeout(()=>error.style.display="none", 3000);
+  }
+}
+
+function cerrarReservas(){
+  _reservasDesbloqueadas = false;
+  document.getElementById("reservasLock").style.display = "flex";
+  document.getElementById("reservasContent").style.display = "none";
+  document.getElementById("reservasIframe").src = "";
+}
+
+
+/* ── FRAME RESERVAS ──────────────────────────────────────────────────────── */
+const OP_RES_PASS = "Cinziareservas";
+// Reemplazá con la URL del iframe de tu Google Calendar real
+const OP_RES_CAL_BASE = "https://calendar.google.com/calendar/embed?src=primary&ctz=America%2FArgentina%2FBuenos_Aires&showTitle=0&showNav=1&showPrint=0&showCalendars=0";
+let _opResDesbloqueado = false;
+
+function opAbrirReservasFrame(){
+  // Ocultar todos los frames, mostrar reservas
+  ["opInicio","opCel","opPC"].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.style.display="none";
+  });
+  const fr=document.getElementById("opReservas");
+  if(fr){ fr.style.display="flex"; fr.style.flexDirection="column"; }
+  if(_opResDesbloqueado){
+    opMostrarCalRes();
+  } else {
+    document.getElementById("opResLock").style.display="flex";
+    document.getElementById("opResContent").style.display="none";
+    document.getElementById("opResPass").value="";
+    setTimeout(()=>document.getElementById("opResPass").focus(), 150);
+  }
+}
+
+function opVerificarPassRes(){
+  const val=document.getElementById("opResPass").value;
+  const err=document.getElementById("opResPassError");
+  if(val===OP_RES_PASS){
+    _opResDesbloqueado=true;
+    err.style.display="none";
+    opMostrarCalRes();
+  } else {
+    document.getElementById("opResPass").value="";
+    err.style.display="block";
+    setTimeout(()=>err.style.display="none", 2500);
+  }
+}
+
+function opMostrarCalRes(){
+  document.getElementById("opResLock").style.display="none";
+  const cont=document.getElementById("opResContent");
+  cont.style.display="flex";
+  const iframe=document.getElementById("opResIframe");
+  if(!iframe.src||iframe.src===window.location.href){
+    iframe.src=OP_RES_CAL_BASE+"&mode=WEEK";
+  }
+}
+
+function opCambiarVistaRes(vista){
+  document.getElementById("opResIframe").src=OP_RES_CAL_BASE+"&mode="+vista;
+}
+
+function opCerrarSesionRes(){
+  _opResDesbloqueado=false;
+  document.getElementById("opResIframe").src="";
+  document.getElementById("opResLock").style.display="flex";
+  document.getElementById("opResContent").style.display="none";
+  document.getElementById("opResPass").value="";
+}
+
 document.addEventListener("DOMContentLoaded", () => { limpiarColaAtascada(); actualizarBadgeCola(); procesarColaPendiente(); });
 
 /* =========================================================================
@@ -12157,13 +12357,20 @@ function setHash(h){
 }
 function setFrame(f){
   S.frame = f;
-  $("opInicio").style.display = f === "inicio" ? "flex" : "none";
-  $("opCel").style.display = f === "cel" ? "block" : "none";
-  $("opPC").style.display = f === "pc" ? "flex" : "none";
-  $("opSec").textContent = f === "cel" ? "Tour de terreno" : f === "pc" ? "Reunión · Indicadores" : "Gestión operativa";
+  $("opInicio").style.display    = f === "inicio"   ? "flex"  : "none";
+  $("opCel").style.display       = f === "cel"      ? "block" : "none";
+  $("opPC").style.display        = f === "pc"       ? "flex"  : "none";
+  // Frame reservas — si existe
+  const frRes = document.getElementById("opReservas");
+  if(frRes) frRes.style.display  = f === "reservas" ? "flex"  : "none";
+  $("opSec").textContent = f === "cel"      ? "Tour de terreno"
+                         : f === "pc"       ? "Reunión · Indicadores"
+                         : f === "reservas" ? "Calendario de Reservas"
+                         : "Gestión operativa";
   $("opBack").textContent = f === "inicio" ? "← Inicio" : "← Volver";
-  setHash(f === "cel" ? "tour" : f === "pc" ? "reunion/"+S.tab : "operativa");
+  setHash(f === "cel" ? "tour" : f === "pc" ? "reunion/"+S.tab : f === "reservas" ? "reservas" : "operativa");
   if(f === "inicio") return;
+  if(f === "reservas"){ opAbrirReservasFrame(); return; }
   $("opSede").value = S.sede;
   render(); cargar(true);
 }
