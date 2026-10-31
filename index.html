@@ -1,5 +1,4 @@
-, renovación VTV, etc.">
-    </div><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -509,7 +508,11 @@
 .op-land-brand{font-size:11px;font-weight:800;letter-spacing:.22em;color:var(--fog);text-transform:uppercase;margin-bottom:22px}
 .op-land-title{font-size:34px;font-weight:900;letter-spacing:-.02em;margin-bottom:8px}
 .op-land-sub{font-size:14px;color:var(--fog);margin-bottom:40px}
-.op-land-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.op-land-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px}
+body.solo-res .top-tab:not(.sup-home):not([data-tab="reservas"]){display:none !important}
+/* acceso de operarios: solo se mira el calendario real, sin crear/borrar nada */
+body.solo-res #mainReservas [onclick^="openReservaModal"], body.solo-res #mainReservas [onclick^="openEventoGanttModal"], body.solo-res #mainReservas #calFuenteSelect, body.solo-res #mainReservas #recListaTodasWrap{display:none !important}
+@media(max-width:860px){.op-land-grid{grid-template-columns:1fr}}
 @media(max-width:620px){.op-land-grid{grid-template-columns:1fr}.op-land-title{font-size:26px}}
 .op-land-card,.op-opt{background:linear-gradient(180deg,var(--ink3),var(--ink2));border:1px solid var(--line);border-radius:16px;padding:34px 24px;display:flex;flex-direction:column;align-items:center;gap:12px;color:var(--white);text-align:center;transition:transform .15s,border-color .15s,box-shadow .15s}
 .op-land-card:hover,.op-opt:hover{border-color:var(--red);transform:translateY(-3px);box-shadow:0 14px 40px rgba(225,29,46,.16)}
@@ -1183,7 +1186,7 @@ table.op-tbl{width:100%;border-collapse:collapse;min-width:640px}
           <div id="recCalEstadoBanner"></div>
           <div id="ganttReservas" style="overflow-x:auto;"></div>
           <div id="recCalDayDetail" style="margin-top:8px;"></div>
-          <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px;">
+          <div id="recListaTodasWrap" style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px;">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
               <span style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;">Todas las reservas</span>
               <select id="listaSedeFilter" style="background:var(--panel-2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:3px 8px;font-size:11px;">
@@ -1608,10 +1611,10 @@ table.op-tbl{width:100%;border-collapse:collapse;min-width:640px}
       </select>
       <input id="resBuscar" type="text" placeholder="Buscar nombre, N° reserva, mail, teléfono…" oninput="renderReservasTab()" style="flex:1;min-width:200px;background:var(--panel-2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:6px 10px;font-size:12px;">
       <button class="btn" style="font-size:12px;padding:6px 12px;" onclick="cargarReservasClientes(true)">↻ Actualizar</button>
-      <button class="btn" style="font-size:11px;padding:6px 10px;" onclick="configurarReservasClientes()">⚙ Conexión</button>
     </div>
     <div id="resEstado" style="font-size:11px;color:var(--muted);margin-bottom:8px;"></div>
     <div class="panel"><div id="resLista"></div></div>
+    <div id="resGanttHost" style="margin-top:16px;"></div>
   </div>
 </div>
 
@@ -1790,7 +1793,8 @@ table.op-tbl{width:100%;border-collapse:collapse;min-width:640px}
       </select>
     </div>
     <div class="field"><label>Descripción</label>
-      <input type="text" id="eventoDesc" placeholder="Ej: Lubricentro
+      <input type="text" id="eventoDesc" placeholder="Ej: Lubricentro, renovación VTV, etc.">
+    </div>
     <div class="field"><label>Fecha</label>
       <input type="date" id="eventoFecha">
     </div>
@@ -2257,6 +2261,11 @@ table.op-tbl{width:100%;border-collapse:collapse;min-width:640px}
         <span class="op-land-h">Gestión supervisores</span>
         <span class="op-land-p">Flota, mantenimiento, reclamos, presupuestos y todo el dashboard</span>
         <span class="op-land-lock">Acceso con contraseña</span>
+      </button>
+      <button class="op-land-card" data-nav="reservas">
+        <span class="op-land-ico">📅</span>
+        <span class="op-land-h">Reservas</span>
+        <span class="op-land-p">Calendario de reservas con nombre y teléfono del cliente</span>
       </button>
     </div>
     <div class="op-land-ver">CINZIA RENTAL · SISTEMA DE GESTIÓN</div>
@@ -6652,7 +6661,23 @@ function switchTab(tab){
   if(tab === "costos")   { guardarEstadoLocal(); renderCostosTab(); }
   if(tab === "presupuestos") { initPresupuestos(); }
   if(tab === "postventa") { renderPostventaTab(); }
+  moverGanttReservas(tab === "reservas");
   if(tab === "reservas") { renderReservasTab(); cargarReservasClientes(false); }
+}
+// El cronograma de reservas (calendario real) vive en "Indicadores & Reclamos"; en la pestaña Reservas se lo trae acá y se devuelve al salir.
+let _ganttOrigen = null;
+function moverGanttReservas(aReservas){
+  const ban = document.getElementById("recCalEstadoBanner"); const panel = ban && ban.parentElement;
+  const host = document.getElementById("resGanttHost");
+  if(!panel || !host) return;
+  if(aReservas){
+    if(!_ganttOrigen) _ganttOrigen = { padre: panel.parentElement, sig: panel.nextSibling };
+    if(panel.parentElement !== host) host.appendChild(panel);
+    if(document.body.classList.contains("solo-res")){ try{ cambiarFuenteCalendario("panel"); }catch(e){} }
+    try{ if(RAW_DATA) renderRecCalendar(); }catch(e){ console.warn("renderRecCalendar:", e); }
+  } else if(_ganttOrigen && panel.parentElement === host){
+    _ganttOrigen.padre.insertBefore(panel, _ganttOrigen.sig && _ganttOrigen.sig.parentNode === _ganttOrigen.padre ? _ganttOrigen.sig : null);
+  }
 }
 
 function renderKanbanTab(){
@@ -8300,7 +8325,12 @@ function openVehicleModal(patente){
   const odooSvcs = (RAW_DATA.odooServicios||[]).filter(r => r.movil === movilNum);
   const reparDashboard = (RAW_DATA.reparaciones||[]).filter(r => r.patente===patenteV);
   // Mantenimientos preventivos registrados (lubricentro, correas, etc.)
-  const mantRegistrados = (STATE.historialMant||[]).filter(r => r.patente===patenteV || String(r.movil)===String(movilNum));
+  // Se compara la patente sin espacios/guiones/mayúsculas (la planilla puede traerla distinta) y también por "M22" / número de móvil.
+  const _np = s => String(s||"").toUpperCase().replace(/[^A-Z0-9]/g,"");
+  const mantRegistrados = (STATE.historialMant||[]).filter(r => {
+    const p = _np(r.patente);
+    return p === _np(patenteV) || p === "M"+movilNum || p === String(movilNum) || String(r.movil||"") === String(movilNum);
+  });
 
   const historialCombinado = [
     ...roturasEmbed.map(r => ({ km:r.km, texto:r.trabajo, fuente:"Roturas", fecha:null })),
@@ -9369,7 +9399,7 @@ async function cargarEstadoGuardado(){
     if(rows && rows.length){
       STATE.historialMant = rows.filter(r=>r.Patente||r.Item).map(r => ({
         fecha: r.Fecha ? (parseGvizDate(r.Fecha) ? fmtISO(parseGvizDate(r.Fecha)) : String(r.Fecha)) : "",
-        patente: r.Patente||"", movil:"", item: r.Item||"", km: Number(r.Km)||0, tipo:"mantenimiento"
+        patente: String(r.Patente||"").trim(), movil:"", item: String(r.Item||"").trim(), km: Number(r.Km)||0, tipo:"mantenimiento"
       }));
       // Aplicar el último registro de cada patente|item al RAW_DATA. Se vuelve a aplicar al final de esta
       // función, porque los ítems agregados al catálogo (filtro suplementario, alineación y balanceo…)
@@ -11706,7 +11736,13 @@ function exportarPreciosExcel(){
    en este navegador (localStorage); la planilla de clientes sigue siendo privada.
    ========================================================================= */
 let RES_CLI = { lista: [], generado: "", cargando: false, error: "" };
-function resCfg(){ try{ return JSON.parse(localStorage.getItem("cinzia_res_cfg")||"{}"); }catch(e){ return {}; } }
+// Conexión automática: usa la misma app web del backend (CONFIG.API_URL) con la clave de lectura de reservas; no hay que cargar nada a mano.
+// (Si alguna vez se guardó una configuración manual en este navegador, esa tiene prioridad.)
+const RES_CLAVE_AUTO = "cinzia-reservas-2026";
+function resCfg(){
+  let m = {}; try{ m = JSON.parse(localStorage.getItem("cinzia_res_cfg")||"{}"); }catch(e){}
+  return { url: m.url || (typeof CONFIG !== "undefined" ? CONFIG.API_URL : ""), clave: m.clave || RES_CLAVE_AUTO };
+}
 function configurarReservasClientes(){
   const c = resCfg();
   const url = prompt("URL de la app web del robot del calendario (termina en /exec):", c.url || "");
@@ -12961,8 +12997,15 @@ function pedirClave(){
   document.getElementById("opPassOk").onclick = probar; document.getElementById("opPassX").onclick = cerrar;
   inp.addEventListener("keydown", e => { if(e.key === "Enter") probar(); if(e.key === "Escape") cerrar(); });
 }
+function entrarReservas(){
+  document.body.classList.add("solo-res");
+  ver("sup"); setHash("reservas");
+  const l = $("supLoading"); l.style.display = "flex";
+  iniciarDashboard().then(() => { l.style.display = "none"; try{ switchTab("reservas"); }catch(e){} }).catch(() => { l.style.display = "none"; });
+}
 function entrarSup(sub){
-  const tab = sub || STATE.tab || localStorage.getItem("cinzia_tab") || "flota";
+  document.body.classList.remove("solo-res");
+  const tab =sub || STATE.tab || localStorage.getItem("cinzia_tab") || "flota";
   ver("sup"); setHash("supervisores/"+tab);
   const l = $("supLoading"); l.style.display = "flex";
   iniciarDashboard().then(() => { l.style.display = "none"; try{ switchTab(tab); }catch(e){} }).catch(() => { l.style.display = "none"; });
@@ -12971,7 +13014,7 @@ const supAutorizado = () => { try{ return sessionStorage.getItem("cinzia_sup") =
 /* al tocar una pestaña del dashboard de supervisores también queda un paso en el historial */
 document.addEventListener("click", e => {
   const b = e.target.closest && e.target.closest(".top-tab[data-tab]");
-  if(b && $("supRoot") && $("supRoot").style.display === "block") setTimeout(() => setHash("supervisores/"+b.dataset.tab), 0);
+  if(b && $("supRoot") && $("supRoot").style.display === "block" && !document.body.classList.contains("solo-res")) setTimeout(() => setHash("supervisores/"+b.dataset.tab), 0);
 });
 /* botón "atrás" / "adelante" del navegador */
 function aplicarHash(h){
@@ -12981,6 +13024,7 @@ function aplicarHash(h){
     cerrarLb(); if(modalAbierto()) cerrarModal();
     const pass = document.getElementById("opPass"); if(pass) pass.remove();
     if(base === "supervisores"){ if(supAutorizado()) entrarSup(sub); else { ver("landing"); } }
+    else if(base === "reservas"){ entrarReservas(); }
     else if(base === "operativa"){ ver("op"); setFrame("inicio"); }
     else if(base === "tour"){ ver("op"); setFrame("cel"); }
     else if(base === "reunion"){ ver("op"); S.tab = ["ind","tour","cal"].indexOf(sub) >= 0 ? sub : S.tab; setFrame("pc"); setTab(S.tab); }
@@ -12991,6 +13035,7 @@ window.addEventListener("popstate", () => aplicarHash(hashActual()));
 const Nav = window.Nav = {
   landing(){ ver("landing"); setHash(""); },
   operativa(){ ver("op"); setFrame("inicio"); },
+  reservas(){ entrarReservas(); },
   supervisores(){ let ok = false; try{ ok = sessionStorage.getItem("cinzia_sup") === "1" || localStorage.getItem("cinzia_sup_rec") === "1"; }catch(e){} if(ok) entrarSup(); else pedirClave(); }
 };
 
