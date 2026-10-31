@@ -1,4 +1,5 @@
-<!DOCTYPE html>
+, renovación VTV, etc.">
+    </div><!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -832,9 +833,9 @@ table.op-tbl{width:100%;border-collapse:collapse;min-width:640px}
   <button class="top-tab" data-tab="reclamos">📊 Indicadores &amp; Reclamos</button>
   <button class="top-tab" data-tab="kanban">📊 Kanban</button>
   <button class="top-tab" data-tab="costos">💰 Gastos Rental</button>
+  <button class="top-tab" data-tab="reservas">📅 Reservas</button>
   <button class="top-tab" data-tab="postventa">🛠 Postventa</button>
   <button class="top-tab" data-tab="presupuestos">🔧 Presupuestos</button>
-  <button class="top-tab" data-tab="reservas" id="tabReservas">📅 Reservas</button>
 </div>
 
 <div class="app-shell" id="appShell">
@@ -906,6 +907,11 @@ table.op-tbl{width:100%;border-collapse:collapse;min-width:640px}
     <div class="content">
       <div class="kpis" id="kpiRow"></div>
       <div class="kpi-subnote" id="kpiSubnote"></div>
+
+      <div class="panel" style="margin-bottom:20px;">
+        <div class="panel-title">⏳ Se vencen pronto — estimado según el uso real de cada móvil (próximos 30 días)</div>
+        <div id="mantProyeccion"></div>
+      </div>
 
       <div class="panel" style="margin-bottom:20px;">
         <div class="panel-title">
@@ -1340,38 +1346,6 @@ table.op-tbl{width:100%;border-collapse:collapse;min-width:640px}
     </div>
   </div>
 
-
-  <!-- PESTAÑA RESERVAS — protegida con contraseña -->
-  <div class="main" id="mainReservas" style="display:none; flex-direction:column; align-items:center; justify-content:center; min-height:80vh;">
-    <!-- Pantalla de contraseña -->
-    <div id="reservasLock" style="display:flex;flex-direction:column;align-items:center;gap:16px;max-width:360px;width:100%;padding:32px;">
-      <div style="font-size:32px;">🔒</div>
-      <div style="font-size:17px;font-weight:700;color:var(--text);">Acceso restringido</div>
-      <div style="font-size:13px;color:var(--muted);text-align:center;">Esta sección requiere contraseña para acceder al calendario de reservas.</div>
-      <input type="password" id="reservasPassInput" placeholder="Contraseña"
-        style="width:100%;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:11px 14px;font-size:14px;outline:none;"
-        onkeydown="if(event.key==='Enter') verificarPassReservas()">
-      <button class="btn btn-primary btn-block" onclick="verificarPassReservas()">Ingresar</button>
-      <div id="reservasPassError" style="color:var(--red);font-size:12px;display:none;">Contraseña incorrecta</div>
-    </div>
-    <!-- Calendario una vez desbloqueado -->
-    <div id="reservasContent" style="display:none;width:100%;height:100%;flex-direction:column;">
-      <div style="display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--border);flex-shrink:0;">
-        <span style="font-size:14px;font-weight:700;">📅 Calendario de Reservas</span>
-        <a id="reservasCalLink" href="https://calendar.google.com" target="_blank"
-          style="font-size:11px;color:var(--accent);margin-left:auto;text-decoration:none;">Abrir en Google Calendar ↗</a>
-        <button onclick="cerrarReservas()" style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:11px;padding:4px 10px;cursor:pointer;">🔒 Cerrar sesión</button>
-      </div>
-      <div style="flex:1;overflow:hidden;">
-        <iframe id="reservasIframe"
-          src=""
-          style="width:100%;height:100%;border:none;min-height:calc(100vh - 120px);"
-          frameborder="0" scrolling="no">
-        </iframe>
-      </div>
-    </div>
-  </div>
-
   <!-- PESTAÑA NECESIDAD DE REPUESTO / TRÁMITE / MATERIAL -->
   <div class="main" id="mainRepuestos" style="display:none; flex-direction:column;">
     <div class="content" style="padding-top:16px;">
@@ -1533,6 +1507,22 @@ table.op-tbl{width:100%;border-collapse:collapse;min-width:640px}
           <div style="font-size:10.5px;color:var(--muted);margin-top:6px;">Si el elemento no tiene precio cargado o cambió, actualizalo en "Catálogo y precios → Elementos / Repuestos" (hablando antes con pañol).</div>
         </div>
 
+        <!-- Cargo especial / no estándar -->
+        <div class="panel" style="margin-bottom:14px;border:1px solid var(--green);">
+          <div class="panel-title" style="color:var(--green);">💲 Agregar cargo especial (no estándar)</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">Para cobrar algo que no está en el catálogo: falta de combustible, limpieza extra, multa, faltante, etc. Las fotos quedan adjuntas al presupuesto (también podés pegarlas con Ctrl+V).</div>
+          <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;">
+            <div class="field" style="margin:0;flex:1.6;min-width:200px;"><label>Concepto</label>
+              <input type="text" id="presExtraNombre" list="presExtraSugerencias" placeholder="Ej: Falta de combustible (3/4 de tanque)">
+              <datalist id="presExtraSugerencias"><option value="Falta de combustible"><option value="Limpieza extra"><option value="Faltante de elemento"><option value="Exceso de kilometraje"><option value="Multa / infracción"><option value="Franquicia por daño"></datalist>
+            </div>
+            <div class="field" style="margin:0;width:90px;"><label>Cantidad</label><input type="number" id="presExtraCant" value="1" min="0.01" step="0.01"></div>
+            <div class="field" style="margin:0;width:140px;"><label>Costo unitario ($)</label><input type="number" id="presExtraMonto" min="0" step="any" placeholder="0"></div>
+            <div class="field" style="margin:0;"><label>Fotos</label><input type="file" id="presExtraFotos" accept="image/*" multiple style="font-size:11px;"></div>
+            <button class="btn" style="font-size:12px;padding:8px 16px;border-color:var(--green);color:var(--green);" onclick="presAgregarCargoEspecial()">+ Agregar al presupuesto</button>
+          </div>
+        </div>
+
         <!-- Ítems cargados (de recetas + manuales) -->
         <div class="panel" style="margin-bottom:14px;">
           <div class="panel-title">Ítems del presupuesto
@@ -1604,17 +1594,40 @@ table.op-tbl{width:100%;border-collapse:collapse;min-width:640px}
     </div>
   </div>
 
+<!-- PESTAÑA RESERVAS (con datos del cliente) -->
+<div class="main" id="mainReservas" style="display:none; flex-direction:column;">
+  <div class="content" style="padding-top:16px;">
+    <h2 style="font-size:15px;font-weight:700;margin:0 0 4px;color:var(--text);">📅 Reservas — entregas, devoluciones y datos del cliente</h2>
+    <div style="font-size:11.5px;color:var(--muted);margin-bottom:12px;">Los datos salen de la planilla privada que llena el robot del calendario (se actualiza cada 30 minutos). Nada de esto se publica en la planilla del dashboard.</div>
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center;">
+      <select id="resFiltroSede" onchange="renderReservasTab()" style="background:var(--panel-2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:6px 10px;font-size:12px;">
+        <option value="todas">Todas las sedes</option><option value="CBA">Córdoba</option><option value="BSAS">Buenos Aires</option><option value="BRC">Bariloche</option><option value="SALTA">Salta</option>
+      </select>
+      <select id="resFiltroRango" onchange="renderReservasTab()" style="background:var(--panel-2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:6px 10px;font-size:12px;">
+        <option value="hoy">Entregas y devoluciones de hoy</option><option value="semana" selected>Próximos 7 días</option><option value="mes">Próximos 30 días</option><option value="curso">En curso (alquiladas ahora)</option><option value="todas">Todas</option>
+      </select>
+      <input id="resBuscar" type="text" placeholder="Buscar nombre, N° reserva, mail, teléfono…" oninput="renderReservasTab()" style="flex:1;min-width:200px;background:var(--panel-2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:6px 10px;font-size:12px;">
+      <button class="btn" style="font-size:12px;padding:6px 12px;" onclick="cargarReservasClientes(true)">↻ Actualizar</button>
+      <button class="btn" style="font-size:11px;padding:6px 10px;" onclick="configurarReservasClientes()">⚙ Conexión</button>
+    </div>
+    <div id="resEstado" style="font-size:11px;color:var(--muted);margin-bottom:8px;"></div>
+    <div class="panel"><div id="resLista"></div></div>
+  </div>
+</div>
+
 <!-- PESTAÑA POSTVENTA -->
 <div class="main" id="mainPostventa" style="display:none; flex-direction:column;">
   <div class="content" style="padding-top:16px;">
     <h2 style="font-size:15px;font-weight:700;margin:0 0 4px;color:var(--text);">🛠 Postventa — turnos de taller</h2>
-    <div style="font-size:11.5px;color:var(--muted);margin-bottom:16px;">Turnos para Córdoba y Buenos Aires. Se ven también en el cronograma de reservas (fila "Postventa") y en el calendario diario. Son independientes de los móviles de alquiler.</div>
+    <div style="font-size:11.5px;color:var(--muted);margin-bottom:16px;">Turnos de taller por sucursal, con duración estimada y cronograma (Gantt). Se ven también en el cronograma de reservas (fila "Postventa") y en el calendario diario. Son independientes de los móviles de alquiler.</div>
 
     <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
       <select id="pvFiltroSede" onchange="renderPostventaTab()" style="background:var(--panel-2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:6px 10px;font-size:12px;">
-        <option value="todas">Córdoba y Buenos Aires</option>
+        <option value="todas">Todas las sucursales</option>
         <option value="CBA">Córdoba</option>
         <option value="BSAS">Buenos Aires</option>
+        <option value="BRC">Bariloche</option>
+        <option value="SALTA">Salta</option>
       </select>
       <select id="pvFiltroEstado" onchange="renderPostventaTab()" style="background:var(--panel-2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:6px 10px;font-size:12px;">
         <option value="activos">Pendientes y en taller</option>
@@ -1633,6 +1646,13 @@ table.op-tbl{width:100%;border-collapse:collapse;min-width:640px}
       <div id="pvSugerencias"></div>
     </div>
 
+    <div class="panel" style="margin-bottom:20px;">
+      <div class="panel-title">📊 Cronograma de taller (Gantt, próximos 14 días)
+        <span style="margin-left:auto;font-size:11px;color:var(--muted);font-weight:400;">jornada 9 a 18 hs · domingos no se trabaja · tocá una barra para editar</span>
+      </div>
+      <div id="pvGantt" style="overflow-x:auto;"></div>
+    </div>
+
     <div class="panel">
       <div class="panel-title">Turnos</div>
       <div id="pvLista"></div>
@@ -1646,13 +1666,16 @@ table.op-tbl{width:100%;border-collapse:collapse;min-width:640px}
     <button class="modal-close" onclick="document.getElementById('pvModalBackdrop').classList.remove('open')">✕</button>
     <h3 id="pvModalTitulo">Nuevo turno de postventa</h3>
     <input type="hidden" id="pvId">
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 10px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:0 10px;">
       <div class="field"><label>Sucursal</label>
-        <select id="pvSede"><option value="CBA">Córdoba</option><option value="BSAS">Buenos Aires</option></select>
+        <select id="pvSede"><option value="CBA">Córdoba</option><option value="BSAS">Buenos Aires</option><option value="BRC">Bariloche</option><option value="SALTA">Salta</option></select>
       </div>
       <div class="field"><label>Fecha</label><input type="date" id="pvFecha"></div>
-      <div class="field"><label>Hora (opcional)</label><input type="time" id="pvHora"></div>
+      <div class="field"><label>Hora inicio</label><input type="time" id="pvHora" placeholder="09:00"></div>
+      <div class="field"><label>Duración (hs)</label><input type="number" id="pvDuracion" min="0.5" step="0.5" value="2" list="pvDuracionOpc"></div>
     </div>
+    <datalist id="pvDuracionOpc"><option value="1"><option value="2"><option value="4"><option value="8"><option value="16"><option value="24"><option value="40"></datalist>
+    <div id="pvAviso" style="font-size:11.5px;margin:-4px 0 10px;min-height:14px;"></div>
     <div class="field"><label>Cliente</label><input type="text" id="pvCliente" placeholder="Nombre y apellido / teléfono"></div>
     <div class="field"><label>Vehículo</label><input type="text" id="pvVehiculo" placeholder="Ej: Sprinter 314 — patente AB123CD"></div>
     <div class="field"><label>Operaciones a realizar</label>
@@ -1660,7 +1683,11 @@ table.op-tbl{width:100%;border-collapse:collapse;min-width:640px}
     </div>
     <div class="field"><label>Material o pieza necesaria</label>
       <textarea id="pvMaterial" rows="2" placeholder="Ej: bomba de agua, kit de filtros. Dejar vacío si no hace falta."></textarea>
-      <label style="display:flex;align-items:center;gap:6px;margin-top:6px;font-size:12px;color:var(--text);cursor:pointer;"><input type="checkbox" id="pvMaterialListo"> El material ya está disponible</label>
+      <label style="display:block;margin-top:8px;font-size:11px;color:var(--muted);">Estado del material</label>
+      <select id="pvMatEstado">
+        <option value="">No hace falta material</option>
+        <option>A pedir</option><option>Pedido</option><option>A comprar</option><option>En stock</option><option>Recibido</option>
+      </select>
     </div>
     <div class="field"><label>Estado</label>
       <select id="pvEstado"><option>Programado</option><option>En taller</option><option>Realizado</option><option>Cancelado</option></select>
@@ -1763,8 +1790,7 @@ table.op-tbl{width:100%;border-collapse:collapse;min-width:640px}
       </select>
     </div>
     <div class="field"><label>Descripción</label>
-      <input type="text" id="eventoDesc" placeholder="Ej: Lubricentro, renovación VTV, etc.">
-    </div>
+      <input type="text" id="eventoDesc" placeholder="Ej: Lubricentro
     <div class="field"><label>Fecha</label>
       <input type="date" id="eventoFecha">
     </div>
@@ -2255,7 +2281,7 @@ table.op-tbl{width:100%;border-collapse:collapse;min-width:640px}
     <div class="op-land-brand">Gestión operativa</div>
     <h2 class="op-land-title" style="font-size:26px;">¿Desde dónde estás ingresando?</h2>
     <p class="op-land-sub" style="margin-bottom:30px;">Cada frame está pensado para su momento del día</p>
-    <div class="op-opt-grid" style="grid-template-columns:repeat(3,1fr);">
+    <div class="op-opt-grid">
       <button class="op-opt" data-act="frame" data-f="cel">
         <span class="op-land-ico">📱</span>
         <span class="op-land-h">Tour de terreno</span>
@@ -2265,12 +2291,6 @@ table.op-tbl{width:100%;border-collapse:collapse;min-width:640px}
         <span class="op-land-ico">🖥️</span>
         <span class="op-land-h">Reunión / Indicadores</span>
         <span class="op-land-p">PC o TV: indicadores de la semana, revisar y validar el tour, plan de acción y calendarios.</span>
-      </button>
-      <button class="op-opt" data-act="frame" data-f="reservas">
-        <span class="op-land-ico">📅</span>
-        <span class="op-land-h">Reservas</span>
-        <span class="op-land-p">Calendario de reservas de la flota. Acceso con contraseña.</span>
-        <span class="op-land-lock">Acceso con contraseña</span>
       </button>
     </div>
   </div>
@@ -2297,49 +2317,6 @@ table.op-tbl{width:100%;border-collapse:collapse;min-width:640px}
     </div>
   </div>
 
-
-  <!-- Frame reservas -->
-  <div class="op-frame" id="opReservas" style="display:none;">
-    <!-- Pantalla de contraseña -->
-    <div id="opResLock" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:18px;padding:40px;">
-      <div style="font-size:44px;">📅</div>
-      <div style="font-size:20px;font-weight:800;">Calendario de Reservas</div>
-      <div style="font-size:13px;color:var(--fog);text-align:center;max-width:320px;">Esta sección requiere contraseña de acceso.</div>
-      <div style="width:100%;max-width:320px;display:flex;flex-direction:column;gap:10px;">
-        <input type="password" id="opResPass" placeholder="Contraseña"
-          style="width:100%;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:12px 14px;font-size:15px;font-family:inherit;outline:none;text-align:center;letter-spacing:.12em;"
-          onkeydown="if(event.key==='Enter') opVerificarPassRes()">
-        <button onclick="opVerificarPassRes()"
-          style="width:100%;padding:12px;background:#C41E1E;color:white;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;">
-          Ingresar
-        </button>
-        <div id="opResPassError" style="color:#ff4444;font-size:12px;text-align:center;display:none;">Contraseña incorrecta</div>
-      </div>
-    </div>
-    <!-- Calendario -->
-    <div id="opResContent" style="display:none;flex-direction:column;height:100%;">
-      <div style="display:flex;align-items:center;gap:10px;padding:8px 16px;border-bottom:1px solid var(--border);flex-shrink:0;">
-        <select onchange="opCambiarVistaRes(this.value)"
-          style="background:var(--panel-2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:5px 10px;font-size:12px;">
-          <option value="WEEK">Semana</option>
-          <option value="MONTH">Mes</option>
-          <option value="AGENDA">Agenda</option>
-          <option value="DAY">Día</option>
-        </select>
-        <a href="https://calendar.google.com" target="_blank"
-          style="font-size:11px;color:var(--accent);margin-left:auto;text-decoration:none;">Abrir en Google Calendar ↗</a>
-        <button onclick="opCerrarSesionRes()"
-          style="background:none;border:1px solid var(--border);border-radius:5px;color:var(--muted);font-size:11px;padding:4px 10px;cursor:pointer;">
-          🔒 Cerrar sesión
-        </button>
-      </div>
-      <iframe id="opResIframe" src=""
-        style="flex:1;border:none;width:100%;min-height:0;"
-        frameborder="0">
-      </iframe>
-    </div>
-  </div>
-
   <div id="opModalBack"><div class="op-modal" id="opModalBox"></div></div>
   <div id="opLb"></div>
 </div>
@@ -2357,11 +2334,12 @@ const CONFIG = {
   API_URL: "https://script.google.com/macros/s/AKfycbzthZt-KRhedtWBIB3XFKjgKZ_ixmgRvzDUuLeb1-RdCBywuizsWlVfsTTzXXc5_lfjyA/exec",
   // Debe coincidir con BACKEND_VERSION del archivo cinzia-backend.gs — si no coincide,
   // el backend desplegado en Apps Script está desactualizado y hay que redesplegarlo.
-  BACKEND_VERSION_ESPERADA: "2026-10-01-v18",
+  BACKEND_VERSION_ESPERADA: "2026-10-22-v20",
 
   SHEETS: {
     inspecciones:  { id: "1YzlQQbzxtxnxxSvt74f1T4obMGNpZOxpnTcCBKlVZgc", sheetName: "" }, // sheetName vacío = usa la primera pestaña (gid=0)
     fotosUrls:     { id: "1YzlQQbzxtxnxxSvt74f1T4obMGNpZOxpnTcCBKlVZgc", sheetName: "FotosLinks" }, // nombre nuevo para evitar cache de Google
+    kmActual:      { id: "1YzlQQbzxtxnxxSvt74f1T4obMGNpZOxpnTcCBKlVZgc", sheetName: "KmActual" }, // la mantiene inspecciones-sync.gs
     mantenimiento: { id: "17619ZhduzpgC0mOhb9Nzyo4OSlhLudYeut1ysda0I-4", sheetName: "" }, // sheetName vacío = primera pestaña
     reparaciones:  { id: "", sheetName: "Reparaciones" }, // opcional, se va a crear sola al primer registro
     neumaticos:    { id: "", sheetName: "Neumaticos" },   // opcional, idem
@@ -2408,7 +2386,7 @@ const CONFIG = {
   NEUMATICO_MM_ROJO: 1.6,
   NEUMATICO_MM_AMBER: 3,
   STALE_INSPECTION_DAYS: 15,
-  AUTO_REFRESH_MINUTES: 5
+  AUTO_REFRESH_MINUTES: 3   // casi tiempo real: Google tarda ~1 min en reflejar lo que se guarda, así que menos que esto no suma
 };
 // Planilla "Cinzia Dashboard Data" (la usa también la cola de reintentos para verificar guardados).
 const LOG_ID = "1brmXwKYclEgNFvNtoA7oYy_OLbENUJa3v8m7U6DT1ac";
@@ -2574,6 +2552,33 @@ window.RESENAS_EMBED = RESENAS_EMBED;
 // Mapa de móviles EFECTIVO: base + los que se dieron de alta − los que se dieron de baja.
 // Todo el resto del código (buildVehicles, selects, etc.) debe usar ESTA función,
 // nunca MOVIL_A_PATENTE directo, para que el alta/baja de la flota se refleje en todos lados.
+// MOVIL_A_PATENTE se usa directo en muchos lugares (inspecciones, selectores, reportes). Los móviles dados de alta
+// después se suman acá para que TODOS esos lugares los reconozcan: antes, las inspecciones de un móvil nuevo se descartaban
+// al leerlas (no tenía patente asociada) y por eso su km ni su mantenimiento arrancaban nunca.
+function sincronizarMapaFlota(){
+  Object.entries(STATE.flotaAgregados || {}).forEach(([m, p]) => {
+    if(p && !MOVIL_A_PATENTE[m]) MOVIL_A_PATENTE[m] = p;
+  });
+}
+// Lee las altas/bajas de flota ANTES de interpretar las inspecciones (loadRealData), para que el móvil nuevo ya esté mapeado.
+async function cargarFlotaTemprano(){
+  try{
+    const d = JSON.parse(localStorage.getItem("cinzia_estado") || "{}");
+    if(d.flotaAgregados){ STATE.flotaAgregados = STATE.flotaAgregados || {}; Object.entries(d.flotaAgregados).forEach(([m, p]) => { if(!STATE.flotaAgregados[m]) STATE.flotaAgregados[m] = p; }); }
+  }catch(e){}
+  try{
+    const editadoFlotaEn = Number(localStorage.getItem("cinzia_flota_editado_en") || 0);
+    if((Date.now() - editadoFlotaEn) >= 600000){
+      const rows = await fetchSheetRows(LOG_ID, "FlotaCambios");
+      (rows || []).filter(r => r.Movil).forEach(r => {
+        const acc = String(r.Accion).toLowerCase();
+        if(acc === "alta"){ STATE.flotaAgregados = STATE.flotaAgregados || {}; STATE.flotaAgregados[r.Movil] = r.Patente || ""; }
+      });
+    }
+  }catch(e){ /* si la hoja todavía no existe, no pasa nada */ }
+  sincronizarMapaFlota();
+}
+
 function getMovilAPatenteActivo(){
   const eliminados = new Set((STATE.flotaEliminados||[]).map(String));
   const combinado = { ...MOVIL_A_PATENTE, ...(STATE.flotaAgregados||{}) };
@@ -2621,8 +2626,78 @@ const MOVIL_A_ZONA = {
   21:"Córdoba", 22:"Córdoba"
 };
 
+/* Orden de inspecciones, la más reciente primero: fecha, luego hora, luego posición en la hoja.
+   Antes se ordenaba solo por fecha: con un Check-in y un Check-out el mismo día quedaba "última" la
+   primera de la hoja (la de menos km) y el km del móvil se veía desactualizado. */
+const cmpInspDesc = (a, b) => ((b.fecha||0) - (a.fecha||0)) || ((b.hora||0) - (a.hora||0)) || ((b._orden||0) - (a._orden||0));
+
+// "16:20:18" o "Date(1899,11,30,16,20,18)" → segundos desde medianoche (0 si no se puede leer)
+function horaASegundos(v){
+  if(v == null || v === "") return 0;
+  if(v instanceof Date) return v.getHours()*3600 + v.getMinutes()*60 + v.getSeconds();
+  const s = String(v);
+  let m = s.match(/Date\(\d+,\s*\d+,\s*\d+,\s*(\d+),\s*(\d+)(?:,\s*(\d+))?\)/);
+  if(!m) m = s.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+  return m ? (+m[1])*3600 + (+m[2])*60 + (+(m[3]||0)) : 0;
+}
+
+// Último km legible y verosímil de un móvil. `lista` = inspecciones del móvil, la más reciente primero.
+// Verosímil = no es menos de la mitad ni más del doble de la mediana de las (hasta 5) inspecciones anteriores:
+// atrapa el dígito de más o de menos sin descartar variaciones normales de uso.
+function kmVigente(lista){
+  for(let i = 0; i < lista.length; i++){
+    const k = lista[i].km;
+    if(!(k > 0)) continue;
+    const prev = lista.slice(i + 1).map(x => x.km).filter(x => x > 0).slice(0, 5).sort((a, b) => a - b);
+    if(prev.length >= 2){
+      const med = prev[Math.floor(prev.length / 2)];
+      if(k < 0.5 * med || k > 2 * med){ console.warn(`Km sospechoso descartado (${k}) en la inspección ${lista[i].idInspeccion||""} del móvil ${lista[i].movil}: los anteriores rondan ${med}`); continue; }
+    }
+    return k;
+  }
+  return 0;
+}
+
+// Km tal cual lo escriba la persona: 182500 · "182.500" · "182,500 km" · "182500,5". Devuelve 0 si no hay un número.
+function parseKmFlexible(v){
+  if(v == null || v === "") return 0;
+  if(typeof v === "number") return isFinite(v) && v > 0 ? v : 0;
+  let s = String(v).toLowerCase().replace(/km/g,"").replace(/\s+/g,"").trim();
+  if(!s) return 0;
+  if(/^\d{1,3}([.,]\d{3})+$/.test(s)) s = s.replace(/[.,]/g,"");        // separador de miles
+  else s = s.replace(",",".");
+  const n = Number(s);
+  return isFinite(n) && n > 0 ? n : 0;
+}
+
+/* Km manual vs. inspecciones de AppSheet: el km cargado a mano solo se aplica si su fecha es
+   igual o POSTERIOR a la de la última inspección de ese móvil. Antes pisaba siempre, para siempre,
+   y las inspecciones nuevas de AppSheet nunca se veían. */
+function aplicarKmManual(patente, km, fechaManual){
+  km = Number(km) || 0;
+  if(!patente || km <= 0) return false;
+  const insps = (RAW_DATA.inspecciones||[])
+    .filter(i => i.patente === patente || String(MOVIL_A_PATENTE[i.movil]||"") === patente)
+    .sort(cmpInspDesc);
+  const ultima = insps[0];
+  if(!ultima){
+    // móvil nuevo que todavía no tiene ninguna inspección: el km se guarda aparte y buildVehicles lo usa
+    RAW_DATA.kmSinInspeccion = RAW_DATA.kmSinInspeccion || {};
+    RAW_DATA.kmSinInspeccion[patente] = km;
+    return true;
+  }
+  const fi = ultima.fecha ? ultima.fecha.getTime() : 0;
+  const fm = fechaManual ? fechaManual.getTime() : 0;
+  if(fm >= fi){ ultima.km = km; return true; }
+  return false;
+}
+function leerKmLocal(){
+  try{ return JSON.parse(localStorage.getItem("cinzia_km_v2")||"{}"); }catch(e){ return {}; }
+}
+
 async function loadRealData(){
   const C = CONFIG.COLUMNS;
+  await cargarFlotaTemprano();   // los móviles dados de alta tienen que estar mapeados antes de leer las inspecciones
   const insp = await fetchSheetRows(CONFIG.SHEETS.inspecciones.id, CONFIG.SHEETS.inspecciones.sheetName);
   console.log("DIAGNÓSTICO Inspecciones — filas leídas:", insp.length);
   console.log("DIAGNÓSTICO Inspecciones — columnas:", insp.length ? JSON.stringify(Object.keys(insp[0])) : "(sin filas)");
@@ -2630,13 +2705,15 @@ async function loadRealData(){
   console.log("DIAGNÓSTICO Inspecciones — valor crudo de numero_de_movil en las primeras 5 filas:", JSON.stringify(insp.slice(0,5).map(r => r[CONFIG.COLUMNS.inspecciones.movil])));
 
   const movilesSinMapear = new Set();
-  const inspecciones = insp.map(r => {
+  const inspecciones = insp.map((r, idxFila) => {
     const movil = Number(r[C.inspecciones.movil]);
     const patente = MOVIL_A_PATENTE[movil];
     if(!patente) movilesSinMapear.add(movil);
     return {
       movil, patente, idInspeccion: r[C.inspecciones.idInspeccion], modelo:null, zona: MOVIL_A_ZONA[movil] || null, sedeInspeccion: r[C.inspecciones.sede],
-      km: (v=>{if(!v&&v!==0)return 0;if(typeof v==="number")return Math.round(v);return Math.round(Number(String(v).trim().replace(/[.,\s]/g,"")))||0;})(r[C.inspecciones.km]), fecha: parseGvizDate(r[C.inspecciones.fecha]),
+      km: parseKmFlexible(r[C.inspecciones.km]), fecha: parseGvizDate(r[C.inspecciones.fecha]),
+      // hora y posición en la hoja: desempatan cuando hay dos inspecciones el mismo día (Check-in y Check-out)
+      hora: horaASegundos(r["hora_inspeccion"]), _orden: idxFila,
       inspector: r[C.inspecciones.inspector],
       tipoOperacion: r[C.inspecciones.tipoOperacion] || null,
       numeroReserva: r[C.inspecciones.numeroReserva] != null ? String(r[C.inspecciones.numeroReserva]).trim() : null,
@@ -3373,7 +3450,13 @@ function buildVehicles(data){
     if(!byPatente[insp.patente]) byPatente[insp.patente] = [];
     byPatente[insp.patente].push(insp);
   });
-  Object.values(byPatente).forEach(lista => lista.sort((a,b) => (b.fecha||0) - (a.fecha||0)));
+  Object.values(byPatente).forEach(lista => {
+    lista.sort(cmpInspDesc);
+    // El km del móvil es el de la inspección más reciente que tenga un km legible Y verosímil: una celda vacía,
+    // con texto, o con un dígito de más/de menos (19.020 en vez de 190.200) ya no dejan el mantenimiento mal.
+    const km = kmVigente(lista);
+    if(lista.length && km > 0 && lista[0].km !== km) lista[0].km = km;
+  });
 
   // Mapa inverso: patente → movil
   const PATENTE_A_MOVIL = {};
@@ -3382,22 +3465,30 @@ function buildVehicles(data){
   return Object.entries(byPatente).map(([patente, lista]) => {
     // Si no hay inspecciones, crear un vehículo vacío con los datos del mapa
     const movilNum = PATENTE_A_MOVIL[patente];
-    // Zona hardcodeada para móviles base; para móviles nuevos (flotaAgregados)
-    // se lee de ZonasMoviles (Sheets) o del localStorage de datos técnicos.
-    const zonaMovilBase = [2,7,9,11,15,20,21,22].includes(movilNum) ? "CBA"
-                        : [8,10,17].includes(movilNum) ? "BRC"
-                        : [12,14,16,18,19].includes(movilNum) ? "BSAS" : "";
-    // Para móviles agregados (no están en la lista hardcodeada), buscar en ZonasMoviles
-    const zonaMovilSheet = (data.zonasMoviles||[]).find(z=>z.patente===patente)?.zona || "";
-    const zonaMovil = zonaMovilBase || zonaMovilSheet || "";
+    let zonasGuardadas = {};
+    try{ zonasGuardadas = JSON.parse(localStorage.getItem("cinzia_zonas") || "{}"); }catch(e){}
+    const zonaMovil = [2,7,9,11,15,20,21,22].includes(movilNum) ? "CBA"
+                    : [8,10,17].includes(movilNum) ? "BRC"
+                    : [12,14,16,18,19].includes(movilNum) ? "BSAS"
+                    : (zonasGuardadas[patente] || "");   // móvil dado de alta: la sede que se eligió al agregarlo
 
     const v = lista.length > 0 ? lista[0] : {
-      patente, movil: movilNum, km: 0, zona: zonaMovil,
+      patente, movil: movilNum, km: (data.kmSinInspeccion || {})[patente] || 0, zona: zonaMovil,
       modelo: "", fecha: null, vtoItv: null, sedeInspeccion: zonaMovil
     };
     if(!v.movil) v.movil = movilNum;
     if(!v.zona)  v.zona  = zonaMovil;
 
+    // Ritmo de uso (km/día) con las inspecciones de los últimos 120 días → fecha estimada de cada vencimiento.
+    let kmDia = null;
+    {
+      const conKm = lista.filter(x => x.fecha && x.km > 0 && (today - x.fecha) <= 120*86400000);
+      if(conKm.length >= 2){
+        const nuevo = conKm[0], viejo = conKm[conKm.length-1];
+        const dd = (nuevo.fecha - viejo.fecha) / 86400000;
+        if(dd >= 7 && nuevo.km > viejo.km) kmDia = (nuevo.km - viejo.km) / dd;
+      }
+    }
     const ultimasInspecciones = lista.slice(0,2);
     // VTO_ITV: en modo mock viene de v.vtoItv; en modo en vivo la leemos del mantenimiento
     // ITV como ítem de mantenimiento
@@ -3443,7 +3534,8 @@ function buildVehicles(data){
         : ((STATE.catalogo||CATALOGO_DEFAULT).find(c=>c.item===m.item)?.intervaloKm || CATALOGO_DEFAULT.find(c=>c.item===m.item)?.intervaloKm || 10000);
       const postergacion = (data.postergaciones||[]).find(p => p.patente === v.patente && p.item === m.item) || null;
       const status = sinDato ? "sindato" : statusFromRemaining(restante, intervalo);
-      return { item:m.item, kmProximo, restante, intervalo, status, postergacion };
+      const diasEst = (!sinDato && kmDia && restante > 0) ? Math.round(restante / kmDia) : null;
+      return { item:m.item, kmProximo, restante, intervalo, status, postergacion, diasEst };
     });
     // Tomar la primera VTO_ITV no vacía del mantenimiento de este vehículo
     const vtoItvRaw = v.vtoItv || (mantVehiculo.find(m => m.vtoItv) || {}).vtoItv || null;
@@ -3487,7 +3579,7 @@ function buildVehicles(data){
 
     const reparaciones = (data.reparaciones||[]).filter(r => r.patente === v.patente).sort((a,b)=> (b.fecha||0) - (a.fecha||0));
 
-    return { ...v, items, itv, overall, reds, ambers, diasDesdeInspeccion:dias, stale: dias != null && dias > CONFIG.STALE_INSPECTION_DAYS, neumaticos, salud, reparaciones, ultimasInspecciones, extras, datosTecnicos, revisiones };
+    return { ...v, items, kmDia, itv, overall, reds, ambers, diasDesdeInspeccion:dias, stale: dias != null && dias > CONFIG.STALE_INSPECTION_DAYS, neumaticos, salud, reparaciones, ultimasInspecciones, extras, datosTecnicos, revisiones };
   });
 }
 
@@ -3720,7 +3812,20 @@ function maintBlocksHtml(v){
       ${itemsSinCategoriaReconocida.map(it => maintRowHtml(it, v.patente)).join("")}
     </div>` : "";
 
-  return itvBlock + blocksHtml + bloqueHuerfanos + agregarQuitarBlock;
+  // Móvil sin ningún mantenimiento cargado (por ejemplo uno recién agregado a la flota): ofrece ponerlos a correr
+  const bloqueIniciar = v.items.length === 0 ? `<div class="cat-block" style="border:1px solid var(--amber);">
+    <div class="cat-head">
+      <span class="cat-icon">🚦</span>
+      <span class="cat-title">Este móvil todavía no tiene mantenimientos en marcha</span>
+    </div>
+    <div style="padding:8px 4px;font-size:12px;color:var(--muted);">Para que empiecen a correr los vencimientos, indicá desde qué km se cuentan (0 si es 0 km; si no sabés cuándo se hizo cada uno, el km actual). Se cargan todos los ítems del catálogo y después podés quitar los que no apliquen.</div>
+    <div style="display:flex;gap:6px;padding:0 4px 10px;flex-wrap:wrap;">
+      <input type="number" id="kmBaseMov_${v.patente}" min="0" value="${v.km || 0}" style="width:150px;background:var(--panel-2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:6px 8px;font-size:12px;">
+      <button class="btn btn-primary" style="font-size:12px;padding:6px 14px;" onclick="iniciarMantenimientosMovil('${v.patente}')">Iniciar mantenimientos</button>
+    </div>
+  </div>` : "";
+
+  return bloqueIniciar + itvBlock + blocksHtml + bloqueHuerfanos + agregarQuitarBlock;
 }
 
 function activarItemEnMovil(patente){
@@ -3832,7 +3937,36 @@ function renderKPIs(){
 /* =========================================================================
    Render: paneles de prioridad y reparaciones
    ========================================================================= */
+// Qué se va a vencer pronto según el ritmo real de cada móvil, y qué móviles tienen el km desactualizado.
+function renderMantProyeccion(){
+  const el = document.getElementById("mantProyeccion"); if(!el) return;
+  const scoped = getZonaScoped();
+  const HORIZONTE = 30, KM_VIEJO = 14;
+  const filas = [];
+  scoped.forEach(v => v.items.forEach(it => {
+    if(it.status === "sindato") return;
+    if(it.restante <= 0) filas.push({ v, it, orden: -1, txt: `<b style="color:var(--red);">Vencido hace ${fmtKm(Math.abs(it.restante))} km</b>` });
+    else if(it.diasEst != null && it.diasEst <= HORIZONTE){
+      const f = new Date(Date.now() + it.diasEst*86400000);
+      filas.push({ v, it, orden: it.diasEst, txt: `<b style="color:${it.diasEst<=7?"var(--red)":"var(--amber)"};">en ~${it.diasEst} día${it.diasEst===1?"":"s"}</b> (${f.toLocaleDateString("es-AR",{day:"numeric",month:"short"})}) · faltan ${fmtKm(it.restante)} km` });
+    }
+  }));
+  filas.sort((a,b) => a.orden - b.orden);
+  const viejos = scoped.filter(v => v.diasDesdeInspeccion != null && v.diasDesdeInspeccion > KM_VIEJO).sort((a,b) => b.diasDesdeInspeccion - a.diasDesdeInspeccion);
+  const sinRitmo = scoped.filter(v => !v.kmDia).length;
+  el.innerHTML = (filas.length ? filas.slice(0,40).map(f => `
+      <div class="list-row" style="gap:10px;cursor:pointer;" onclick="openVehicleModal('${f.v.patente}')">
+        <span style="font-weight:700;min-width:44px;">M${f.v.movil}</span>
+        <span class="list-title" style="flex:1;">${f.it.item}</span>
+        <span style="font-size:12px;">${f.txt}</span>
+        <span style="font-size:10px;color:var(--muted);min-width:70px;text-align:right;">${f.v.kmDia?fmtKm(f.v.kmDia)+" km/día":"ritmo s/d"}</span>
+      </div>`).join("") : `<div class="panel-empty">Nada se vence en los próximos ${HORIZONTE} días según el ritmo de cada móvil.</div>`)
+    + (viejos.length ? `<div style="margin-top:10px;padding:8px 10px;border-radius:8px;background:var(--amber-bg);font-size:11.5px;color:var(--amber);">⚠ Km desactualizado (sin inspección hace más de ${KM_VIEJO} días), la proyección de estos móviles puede estar corrida: ${viejos.map(v=>`M${v.movil} (${v.diasDesdeInspeccion} d)`).join(", ")}.</div>` : "")
+    + (sinRitmo ? `<div style="margin-top:6px;font-size:10.5px;color:var(--muted);">${sinRitmo} móvil(es) sin ritmo calculable todavía (necesitan 2 inspecciones con al menos 7 días de diferencia); esos solo se ven por km.</div>` : "");
+}
+
 function renderMantGeneral(){
+  try{ renderMantProyeccion(); }catch(e){ console.warn("renderMantProyeccion:", e); }
   const scoped = getZonaScoped();
   const el = document.getElementById("mantGeneralList");
   if(!el) return;
@@ -4462,12 +4596,15 @@ function abrirGestionFlota(){
           <input type="text" id="flotaNuevoModelo" placeholder="Modelo">
           <input type="number" id="flotaNuevoAnio" placeholder="Año">
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
           <input type="text" id="flotaNuevoChasis" placeholder="N° de chasis">
           <select id="flotaNuevoSede" style="background:var(--panel-3);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:7px 8px;font-size:12px;">
             <option value="CBA">Córdoba</option><option value="BSAS">Buenos Aires</option>
             <option value="BRC">Bariloche</option><option value="SALTA">Salta</option>
           </select>
+        </div>
+        <div style="margin-bottom:10px;">
+          <input type="number" id="flotaNuevoKm" min="0" placeholder="Km actual del vehículo (0 si es 0 km) — desde ahí se cuentan los mantenimientos" style="width:100%;">
         </div>
         <button class="btn btn-primary btn-block" onclick="darDeAltaMovil()">Agregar a la flota</button>
       </div>
@@ -4488,12 +4625,16 @@ function darDeAltaMovil(){
   const sede = document.getElementById("flotaNuevoSede").value;
 
   if(!movil || !patente){ alert("Completá al menos el número de móvil y la patente."); return; }
+  const kmTxt = document.getElementById("flotaNuevoKm").value.trim();
+  const kmBase = Number(kmTxt);
+  if(kmTxt === "" || !isFinite(kmBase) || kmBase < 0){ alert("Completá el km actual del vehículo (0 si es 0 km). Es el punto desde el que empiezan a contar los mantenimientos."); return; }
   const mapaActivo = getMovilAPatenteActivo();
   if(mapaActivo[movil]){ alert(`Ya existe un móvil N° ${movil} en la flota.`); return; }
   if(Object.values(mapaActivo).includes(patente)){ alert(`Ya existe un vehículo con la patente ${patente}.`); return; }
 
   if(!STATE.flotaAgregados) STATE.flotaAgregados = {};
   STATE.flotaAgregados[movil] = patente;
+  sincronizarMapaFlota();   // para que las inspecciones de este móvil se reconozcan en todo el dashboard
 
   // Guardar datos técnicos y zona/sede del nuevo móvil, reusando los mecanismos que ya existen
   if(modelo || anio || chasis){
@@ -4502,6 +4643,7 @@ function darDeAltaMovil(){
     enviarRegistro("datos_tecnicos", { patente, modelo, anio, chasis }, { hoja: "DatosVehiculo", criterios: { Patente: patente } });
   }
   if(sede){
+    try{ const zonas = JSON.parse(localStorage.getItem("cinzia_zonas")||"{}"); zonas[patente] = sede; localStorage.setItem("cinzia_zonas", JSON.stringify(zonas)); }catch(e){}
     enviarRegistro("zona_movil", { patente, zona: sede, fecha: todayISO() }, { hoja: "ZonasMoviles", criterios: { Patente: patente } });
   }
 
@@ -4510,10 +4652,64 @@ function darDeAltaMovil(){
   enviarRegistro("flota_alta", { movil, patente }, { hoja: "FlotaCambios", criterios: { Movil: movil, Accion: "alta" } });
 
   STATE.vehicles = buildVehicles(RAW_DATA);
+  // Arranca el mantenimiento: todos los ítems del catálogo cuentan desde el km indicado
+  const cargados = iniciarMantenimientosMovil(patente, kmBase, true);
   document.getElementById("flotaModalTemp")?.remove();
   renderAll();
-  showToast(`Móvil ${movil} (${patente}) agregado a la flota — activá sus mantenimientos desde la ficha.`);
+  showToast(`Móvil ${movil} (${patente}) agregado a la flota con ${cargados} mantenimientos contando desde ${fmtKm(kmBase)} km.`);
   abrirGestionFlota(); // reabrir con la lista actualizada
+}
+
+/* Pone a correr el mantenimiento de un móvil: cada ítem del catálogo queda con su próximo vencimiento = km base + intervalo.
+   Se usa al dar de alta un móvil, y desde su ficha para móviles que ya se agregaron sin mantenimientos.
+   No pisa un ítem que ya tiene dato. Devuelve cuántos ítems quedaron cargados. */
+function iniciarMantenimientosMovil(patente, kmBaseParam, desdeAlta){
+  let kmBase = kmBaseParam;
+  if(kmBase === undefined || kmBase === null){
+    const inp = document.getElementById("kmBaseMov_" + patente);
+    kmBase = inp && inp.value !== "" ? Number(inp.value) : NaN;
+  }
+  if(!isFinite(kmBase) || kmBase < 0){ showToast("Escribí el km desde el que se cuentan los mantenimientos (0 si es 0 km).", true); return 0; }
+  const entrada = Object.entries(getMovilAPatenteActivo()).find(([m, p]) => p === patente);
+  const movil = entrada ? entrada[0] : "";
+  const eliminados = new Set(STATE.catalogoEliminados || []);
+  const catalogo = ((STATE.catalogo && STATE.catalogo.length) ? STATE.catalogo : CATALOGO_DEFAULT).filter(c => !eliminados.has(c.item));
+  RAW_DATA.mantenimiento = RAW_DATA.mantenimiento || [];
+  STATE.historialMant = STATE.historialMant || [];
+  let mantLocal = {}, histLocal = [];
+  try{ mantLocal = JSON.parse(localStorage.getItem("cinzia_mant") || "{}"); }catch(e){}
+  try{ histLocal = JSON.parse(localStorage.getItem("cinzia_histMant") || "[]"); }catch(e){}
+  const fecha = todayISO();
+  let n = 0;
+  catalogo.forEach(c => {
+    const intervalo = c.item === "Lubricentro" ? (LUBRICENTRO_POR_MOVIL[movil] || LUBRICENTRO_DEFAULT) : (Number(c.intervaloKm) || 10000);
+    const proximoKm = kmBase + intervalo;
+    const reg = RAW_DATA.mantenimiento.find(m => m.patente === patente && m.item === c.item);
+    if(reg && reg.proximoKm !== null && reg.proximoKm !== undefined) return;   // ya tiene dato: no se pisa
+    if(reg) reg.proximoKm = proximoKm; else RAW_DATA.mantenimiento.push({ patente, item:c.item, proximoKm, vtoItv:"" });
+    const h = { fecha, patente, movil:movil || "", item:c.item, km:proximoKm, tipo:"mantenimiento" };
+    STATE.historialMant.push(h);
+    histLocal.push(h);
+    mantLocal[`${patente}|${c.item}`] = proximoKm;
+    enviarRegistro("mantenimiento", { fecha, patente, item:c.item, km:proximoKm, notas:`Inicio de mantenimientos del móvil (se cuentan desde ${kmBase} km)` });
+    n++;
+  });
+  try{ localStorage.setItem("cinzia_mant", JSON.stringify(mantLocal)); localStorage.setItem("cinzia_histMant", JSON.stringify(histLocal)); }catch(e){}
+  // el km base también queda como km actual del móvil (si todavía no tiene inspecciones, es el único dato que hay)
+  if(kmBase >= 1000){
+    aplicarKmManual(patente, kmBase, new Date());
+    const kmLocal = leerKmLocal(); kmLocal[patente] = { km:kmBase, fecha:todayISO() };
+    try{ localStorage.setItem("cinzia_km_v2", JSON.stringify(kmLocal)); }catch(e){}
+    enviarRegistro("km_actualizado", { patente, km:kmBase, fecha:todayISO() });
+  }
+  guardarEstadoLocal();
+  STATE.vehicles = buildVehicles(RAW_DATA);
+  if(!desdeAlta){
+    if(document.getElementById("vehicleModalBackdrop")?.classList.contains("open")) openVehicleModal(patente);
+    renderAll();
+    showToast(n ? `${n} mantenimientos de ${patente} empezaron a contar desde ${fmtKm(kmBase)} km.` : "Este móvil ya tenía todos sus mantenimientos cargados.");
+  }
+  return n;
 }
 
 function reactivarMovil(movil, patente){
@@ -5909,7 +6105,27 @@ function renderTablaHistorial(){
 }
 
 
+// Datos del cliente (nombre, teléfono, mail) de una reserva, tomados de la planilla privada vía el robot del calendario.
+function resClienteHtml(reserva){
+  if(!reserva) return "";
+  const c = resCfg();
+  if(!c.url || !c.clave) return `<div style="flex-basis:100%;font-size:11.5px;color:var(--muted);">👤 Para ver nombre y teléfono del cliente: pestaña Reservas → ⚙ Conexión.</div>`;
+  if(!RES_CLI.generado){
+    if(!RES_CLI.cargando && !RES_CLI.error) cargarReservasClientes().then(() => { if(window._ultDetalleGantt) mostrarDetalleReservaGantt(...window._ultDetalleGantt); });
+    return `<div style="flex-basis:100%;font-size:11.5px;color:var(--muted);">👤 ${RES_CLI.error ? pvEsc(RES_CLI.error) : "Cargando datos del cliente…"}</div>`;
+  }
+  const r = RES_CLI.lista.find(x => String(x.numero).trim() === String(reserva).trim());
+  if(!r) return `<div style="flex-basis:100%;font-size:11.5px;color:var(--muted);">👤 Sin datos del cliente para esta reserva todavía.</div>`;
+  const nombre = (r.nombre + " " + r.apellido).trim();
+  const n = String(r.tel||"").replace(/[^\d+]/g, "");
+  const tel = n ? `<a href="tel:${n}" style="color:var(--accent);font-weight:600;">${pvEsc(r.tel)}</a> <a href="https://wa.me/${n.replace(/^\+/,"")}" target="_blank" rel="noopener" title="WhatsApp" style="text-decoration:none;">💬</a>` : "sin teléfono";
+  return `<div style="flex-basis:100%;display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:12.5px;padding-top:6px;border-top:1px solid var(--border);">
+    <span>👤 <strong>${pvEsc(nombre) || "sin nombre"}</strong></span><span>📞 ${tel}</span>
+    ${r.email ? `<span>✉ <a href="mailto:${pvEsc(r.email)}" style="color:var(--accent);">${pvEsc(r.email)}</a></span>` : ""}</div>`;
+}
+
 function mostrarDetalleReservaGantt(movil, reserva, cliente, sede, desde, hasta, mes, origen, tipo){
+  window._ultDetalleGantt = [movil, reserva, cliente, sede, desde, hasta, mes, origen, tipo];
   const origenLabel = origen==="appsheet" ? "AppSheet" : origen==="panel" ? "Panel Rental" : "Manual";
   const origenColor = origen==="appsheet" ? "var(--accent)" : "var(--green)";
   const tipoEv = tipo || "Reserva";
@@ -5927,6 +6143,7 @@ function mostrarDetalleReservaGantt(movil, reserva, cliente, sede, desde, hasta,
       <span style="font-size:10.5px;padding:2px 8px;border-radius:99px;background:var(--panel-3);color:${origenColor};">${origenLabel}</span>
       ${origen==="panel" ? `<span style="font-size:10.5px;color:var(--muted);">Fechas y cancelaciones se editan en el panel</span>` : ""}
       <span style="margin-left:auto;display:flex;gap:6px;">${botones}</span>
+      ${resClienteHtml(reserva)}
     </div>`;
 }
 
@@ -6423,10 +6640,10 @@ function switchTab(tab){
   if(costosEl) costosEl.style.display = tab==="costos" ? "flex" : "none";
   const pvEl = document.getElementById("mainPostventa");
   if(pvEl) pvEl.style.display = tab==="postventa" ? "flex" : "none";
-  const presEl = document.getElementById("mainPresupuestos");
-  if(presEl) presEl.style.display = tab==="presupuestos" ? "flex" : "none";
   const resEl = document.getElementById("mainReservas");
   if(resEl) resEl.style.display = tab==="reservas" ? "flex" : "none";
+  const presEl = document.getElementById("mainPresupuestos");
+  if(presEl) presEl.style.display = tab==="presupuestos" ? "flex" : "none";
 
   if(tab === "reclamos") renderReclamosTab();
   if(tab === "kanban")   { guardarEstadoLocal(); if(RAW_DATA) renderKanbanTab(); }
@@ -6435,7 +6652,7 @@ function switchTab(tab){
   if(tab === "costos")   { guardarEstadoLocal(); renderCostosTab(); }
   if(tab === "presupuestos") { initPresupuestos(); }
   if(tab === "postventa") { renderPostventaTab(); }
-  if(tab === "reservas") { abrirPestañaReservas(); }
+  if(tab === "reservas") { renderReservasTab(); cargarReservasClientes(false); }
 }
 
 function renderKanbanTab(){
@@ -6750,10 +6967,12 @@ function renderCostosPorSede(costos){
   if(!el) return;
   const SEDE_LABEL_C = { CBA:"Córdoba", BSAS:"Buenos Aires", BRC:"Bariloche", SALTA:"Salta" };
   const SEDE_COLOR = { CBA:"#58a6ff", BSAS:"#3fb950", BRC:"#bc8cff", SALTA:"#d29922" };
-  const porSede = {};
+  const porSede = {}, pendSede = {};
   costos.forEach(c => {
     const sede = c.sede || "Sin sede";
-    porSede[sede] = (porSede[sede]||0) + (Number(c.monto)||0);
+    const m = Number(c.monto)||0;
+    porSede[sede] = (porSede[sede]||0) + m;
+    if(!c.saldado) pendSede[sede] = (pendSede[sede]||0) + m;
   });
   const entries = Object.entries(porSede).filter(([,v])=>v>0);
   if(!entries.length){ el.innerHTML = `<div class="panel-empty">Sin datos para graficar todavía.</div>`; return; }
@@ -6761,21 +6980,138 @@ function renderCostosPorSede(costos){
   el.innerHTML = entries.map(([sede,monto]) => {
     const pct = Math.round(monto/total*100);
     const color = SEDE_COLOR[sede]||"#7d8590";
+    const pend = pendSede[sede]||0;
     return `<div class="list-row" style="gap:10px;">
       <span style="width:14px;height:14px;border-radius:3px;background:${color};flex:none;"></span>
       <span class="list-title" style="flex:1;">${SEDE_LABEL_C[sede]||sede}</span>
       <span class="list-bar-wrap" style="display:block;"><span class="list-bar" style="width:${pct}%;background:${color};"></span></span>
       <span class="list-right">${fmtMoneda(monto)} (${pct}%)</span>
+      <span style="font-size:11px;font-weight:700;font-family:var(--mono);min-width:150px;text-align:right;color:${pend>0?"var(--red)":"var(--green)"};">${pend>0 ? "A saldar: "+fmtMoneda(pend) : "✓ Al día"}</span>
     </div>`;
   }).join("");
 }
+
+/* ══════════ Fotos compartidas entre navegadores (gastos / facturas / presupuestos) ══════════
+   Antes las fotos vivían SOLO en el navegador que las cargó (localStorage). Ahora se suben a Drive y en la
+   planilla se guarda únicamente el link; así las ve cualquiera que abra el dashboard. Las fotos que ya estaban
+   cargadas en un navegador se suben solas la primera vez que se abre con esta versión. */
+function esFotoLink(f){ return typeof f === "string" && /^https?:\/\//.test(f); }
+function esFotoLocal(f){ return typeof f === "string" && f.indexOf("data:image") === 0; }
+
+async function subirFotoNube(dataUrl, grupo){
+  if(!CONFIG.API_URL) return null;
+  for(let i = 0; i < 3; i++){
+    try{
+      const res = await fetch(CONFIG.API_URL, { method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"},
+        body: JSON.stringify({ tipo:"foto_subir", accion:"foto_subir", grupo, dataUrl }) });
+      const j = await res.json();
+      if(j && j.ok !== false && j.resultado && j.resultado.url) return j.resultado.url;
+      throw new Error((j && j.error) || "respuesta inesperada del servidor");
+    }catch(e){
+      console.warn("subirFotoNube, intento", i+1, "-", e.message);
+      await new Promise(r => setTimeout(r, 1200 * (i+1)));
+    }
+  }
+  return null;
+}
+
+// Lo que se manda a la planilla de un gasto (sin imágenes en base64: solo los links ya subidos a Drive)
+function payloadCosto(c){
+  return { id:c.id, fecha:c.fecha, detalle:c.detalle, monto:c.monto, categoria:c.categoria, sede:c.sede,
+    saldado:!!c.saldado, tieneFactura:(c.fotos && c.fotos.length) ? "SI" : "NO",
+    fotosJson: JSON.stringify((c.fotos||[]).filter(esFotoLink)) };
+}
+// Lo que se manda a la planilla de un presupuesto (fotosV2 = esta versión sabe manejar los links de fotos)
+function presParaNube(p){
+  return { ...p, foto:null, fotos:(p.fotos||[]).filter(esFotoLink), fotosV2:true, pdfSnapshotHtml:undefined };
+}
+function fotosDeJson(txt){
+  try{ const a = JSON.parse(txt || "[]"); return Array.isArray(a) ? a.filter(esFotoLink) : []; }catch(e){ return []; }
+}
+// Une las fotos de la nube con las de este navegador: las de la nube mandan; de las locales se conservan solo las
+// que todavía no se subieron (base64) — y, si la nube nunca guardó fotos de ese registro, también sus links.
+function unirFotos(nube, local, nubeConoce){
+  const res = [...(nube || [])];
+  (local || []).forEach(f => {
+    if(esFotoLocal(f)) res.push(f);
+    else if(esFotoLink(f) && !res.includes(f) && !nubeConoce) res.push(f);
+  });
+  return res;
+}
+
+/* Qué presupuestos / precios cambiaron en ESTE navegador desde lo último que se sabe que está en la nube.
+   Antes cada guardado mandaba TODOS los presupuestos y los precios: un navegador con una copia vieja pisaba
+   lo que otro acababa de editar. Ahora solo se manda lo que realmente cambió. */
+const _presFirmas = {};
+let _preciosFirma = null;
+function presFirma(p){
+  return JSON.stringify([p.numero, p.fecha, p.cliente, p.movil, p.patente, p.estado, p.tipoTrabajo, p.descuento,
+    p.descTipo || "pct", p.descModo || "antes", p.impuestoPct, p.observaciones, p.items, !!p.cerrado, p.cerradoEl || "",
+    (p.fotos || []).filter(esFotoLink)]);
+}
+function presPendientesDeEnvio(){ return (STATE.presupuestos || []).filter(p => _presFirmas[p.numero] !== presFirma(p)); }
+function presMarcarEnviados(lista){ (lista || []).forEach(p => { _presFirmas[p.numero] = presFirma(p); }); }
+
+let _migrandoFotos = false, _fotosProximoIntento = 0;
+async function migrarFotosPendientes(){
+  if(_migrandoFotos || !CONFIG.API_URL || navigator.onLine === false) return;
+  if(Date.now() < _fotosProximoIntento) return;       // tras un fallo total (ej. Drive sin autorizar) se espera un rato
+  _migrandoFotos = true;
+  let subidas = 0, fallidas = 0;
+  try{
+    for(const c of (STATE.costos || [])){
+      if(!(c.fotos || []).some(esFotoLocal)) continue;
+      let cambio = false;
+      for(let i = 0; i < c.fotos.length; i++){
+        if(!esFotoLocal(c.fotos[i])) continue;
+        const url = await subirFotoNube(c.fotos[i], "gastos");
+        if(url){ c.fotos[i] = url; cambio = true; subidas++; } else fallidas++;
+      }
+      if(cambio){
+        c._editadoEn = Date.now();
+        guardarEstadoLocal();
+        enviarRegistro("costo", payloadCosto(c), { hoja:"Costos", criterios:{ ID:c.id } });
+      }
+    }
+    for(const p of (STATE.presupuestos || [])){
+      const lista = Array.isArray(p.fotos) ? p.fotos : (p.foto ? [p.foto] : []);
+      if(!lista.some(esFotoLocal)) continue;
+      let cambio = false;
+      for(let i = 0; i < lista.length; i++){
+        if(!esFotoLocal(lista[i])) continue;
+        const original = lista[i];
+        const url = await subirFotoNube(original, "presupuestos");
+        if(!url){ fallidas++; continue; }
+        lista[i] = url; cambio = true; subidas++;
+        // si este presupuesto está abierto en pantalla, se actualiza también esa copia (si no, la pisaría al guardar)
+        if(_presActual && _presActual.numero === p.numero && Array.isArray(_presActual.fotos)){
+          const k = _presActual.fotos.indexOf(original);
+          if(k >= 0) _presActual.fotos[k] = url;
+        }
+      }
+      if(cambio){ p.fotos = lista; p.foto = null; guardarPresupuestosLocal(); if(_presActual && _presActual.numero === p.numero) renderPresFotos(); }
+    }
+    if(subidas) showToast(`📷 ${subidas} foto${subidas!==1?"s":""} subida${subidas!==1?"s":""} a la nube — ahora las ven todos los navegadores.`);
+    if(fallidas){
+      console.warn("Fotos que no se pudieron subir (se reintenta solo):", fallidas);
+      if(!subidas){ _fotosProximoIntento = Date.now() + 15*60*1000; showToast("⚠ No se pudieron subir las fotos a la nube. Se reintenta solo; si sigue, avisá para revisar el backend (Drive autorizado y versión nueva).", true); }
+    }
+  }catch(e){
+    console.warn("migrarFotosPendientes:", e.message);
+  }finally{
+    _migrandoFotos = false;
+  }
+}
+// reintento periódico por si algo falló (sin conexión, backend sin autorizar Drive, etc.)
+setInterval(() => { try{ migrarFotosPendientes(); }catch(e){} }, 180000);
 
 function agregarCosto(payload){
   const costo = { id:`c_${Date.now()}`, ...payload, saldado:false };
   STATE.costos.push(costo);
   renderCostosTab();
   guardarEstadoLocal();
-  enviarRegistro("costo", costo);
+  enviarRegistro("costo", payloadCosto(costo), { hoja:"Costos", criterios:{ ID:costo.id } });
+  migrarFotosPendientes();
 }
 async function saldarCosto(id){
   const c = STATE.costos.find(x=>x.id===id);
@@ -8727,8 +9063,8 @@ async function enviarRegistro(tipo, payload, verificacion){
       body
     });
     const json = await res.json().catch(()=>({}));
-    const hayError = json.error || json.ok === false;
-    if(!hayError){
+    if(json.ok !== false && !json.error){
+      // Éxito — sacar de la cola
       const cola = leerCola();
       guardarCola(cola.filter(i => i.id !== idempotencyId));
     } else {
@@ -8902,116 +9238,6 @@ async function sincronizarReclamosASheets(){
     showToast("Error al sincronizar: " + e.message, true);
   }
 }
-
-/* ── PESTAÑA RESERVAS ──────────────────────────────────────────────────── */
-// URL del calendario de Google para incrustar — cambiala por la tuya real
-// Formato: https://calendar.google.com/calendar/embed?src=TU_CALENDARIO_ID&ctz=America%2FArgentina%2FBuenos_Aires
-const RESERVAS_CAL_URL = "https://calendar.google.com/calendar/embed?src=primary&ctz=America%2FArgentina%2FBuenos_Aires&showTitle=0&showNav=1&showDate=1&showPrint=0&showTabs=1&showCalendars=0&mode=WEEK";
-const RESERVAS_PASS = "Cinziareservas";
-let _reservasDesbloqueadas = false;
-
-function abrirPestañaReservas(){
-  if(_reservasDesbloqueadas){
-    // Ya desbloqueado — mostrar contenido directo
-    document.getElementById("reservasLock").style.display = "none";
-    document.getElementById("reservasContent").style.display = "flex";
-    // Cargar iframe si aún no tiene src
-    const iframe = document.getElementById("reservasIframe");
-    if(!iframe.src || iframe.src === window.location.href) iframe.src = RESERVAS_CAL_URL;
-  } else {
-    document.getElementById("reservasLock").style.display = "flex";
-    document.getElementById("reservasContent").style.display = "none";
-    document.getElementById("reservasPassInput").value = "";
-    document.getElementById("reservasPassError").style.display = "none";
-    setTimeout(()=>document.getElementById("reservasPassInput").focus(), 100);
-  }
-}
-
-function verificarPassReservas(){
-  const input = document.getElementById("reservasPassInput").value;
-  const error = document.getElementById("reservasPassError");
-  if(input === RESERVAS_PASS){
-    _reservasDesbloqueadas = true;
-    error.style.display = "none";
-    document.getElementById("reservasLock").style.display = "none";
-    document.getElementById("reservasContent").style.display = "flex";
-    const iframe = document.getElementById("reservasIframe");
-    iframe.src = RESERVAS_CAL_URL;
-  } else {
-    error.style.display = "block";
-    document.getElementById("reservasPassInput").value = "";
-    document.getElementById("reservasPassInput").focus();
-    setTimeout(()=>error.style.display="none", 3000);
-  }
-}
-
-function cerrarReservas(){
-  _reservasDesbloqueadas = false;
-  document.getElementById("reservasLock").style.display = "flex";
-  document.getElementById("reservasContent").style.display = "none";
-  document.getElementById("reservasIframe").src = "";
-}
-
-
-/* ── FRAME RESERVAS ──────────────────────────────────────────────────────── */
-const OP_RES_PASS = "Cinziareservas";
-// Reemplazá con la URL del iframe de tu Google Calendar real
-const OP_RES_CAL_BASE = "https://calendar.google.com/calendar/embed?src=primary&ctz=America%2FArgentina%2FBuenos_Aires&showTitle=0&showNav=1&showPrint=0&showCalendars=0";
-let _opResDesbloqueado = false;
-
-function opAbrirReservasFrame(){
-  // Ocultar todos los frames, mostrar reservas
-  ["opInicio","opCel","opPC"].forEach(id=>{
-    const el=document.getElementById(id); if(el) el.style.display="none";
-  });
-  const fr=document.getElementById("opReservas");
-  if(fr){ fr.style.display="flex"; fr.style.flexDirection="column"; }
-  if(_opResDesbloqueado){
-    opMostrarCalRes();
-  } else {
-    document.getElementById("opResLock").style.display="flex";
-    document.getElementById("opResContent").style.display="none";
-    document.getElementById("opResPass").value="";
-    setTimeout(()=>document.getElementById("opResPass").focus(), 150);
-  }
-}
-
-function opVerificarPassRes(){
-  const val=document.getElementById("opResPass").value;
-  const err=document.getElementById("opResPassError");
-  if(val===OP_RES_PASS){
-    _opResDesbloqueado=true;
-    err.style.display="none";
-    opMostrarCalRes();
-  } else {
-    document.getElementById("opResPass").value="";
-    err.style.display="block";
-    setTimeout(()=>err.style.display="none", 2500);
-  }
-}
-
-function opMostrarCalRes(){
-  document.getElementById("opResLock").style.display="none";
-  const cont=document.getElementById("opResContent");
-  cont.style.display="flex";
-  const iframe=document.getElementById("opResIframe");
-  if(!iframe.src||iframe.src===window.location.href){
-    iframe.src=OP_RES_CAL_BASE+"&mode=WEEK";
-  }
-}
-
-function opCambiarVistaRes(vista){
-  document.getElementById("opResIframe").src=OP_RES_CAL_BASE+"&mode="+vista;
-}
-
-function opCerrarSesionRes(){
-  _opResDesbloqueado=false;
-  document.getElementById("opResIframe").src="";
-  document.getElementById("opResLock").style.display="flex";
-  document.getElementById("opResContent").style.display="none";
-  document.getElementById("opResPass").value="";
-}
-
 document.addEventListener("DOMContentLoaded", () => { limpiarColaAtascada(); actualizarBadgeCola(); procesarColaPendiente(); });
 
 /* =========================================================================
@@ -9057,6 +9283,73 @@ function guardarEstadoLocal(){
   }
 }
 
+// Los reclamos / observaciones / "sin novedad" cargados antes de que el guardado funcionara bien quedaron
+// SOLO en el navegador donde se cargaron (por eso un navegador mostraba 10 reservas sin reclamo en Córdoba y
+// otro 8). Esto los sube a la nube la próxima vez que se abre el dashboard en ese navegador. Es seguro repetirlo:
+// el backend actualiza por móvil + número de reserva, no duplica.
+async function sincronizarReclamosLocales(recLocal){
+  try{
+    const enNube = window._reclamosEnNube;
+    if(!enNube || !CONFIG.API_URL) return;          // si no se pudo leer la nube, no se asume nada
+    // Cada reclamo se sube UNA sola vez por navegador: si después alguien lo elimina desde otro lado, la copia vieja
+    // que quede acá no lo "resucita".
+    let yaSubidos; try{ yaSubidos = new Set(JSON.parse(localStorage.getItem("cinzia_reclamos_subidos")||"[]")); }catch(e){ yaSubidos = new Set(); }
+    // Solo los de los últimos 3 meses: un reclamo viejo que falte en la nube casi seguro se eliminó a propósito
+    const mesReciente = m => { const i = MESES_ORDEN.indexOf(m); return i >= 0 && ((new Date().getMonth() - i + 12) % 12) <= 2; };
+    const faltan = (recLocal||[]).filter(r => r && r.movil != null && r.movil !== "" && r.numeroReserva && mesReciente(r.mes) &&
+      !enNube.has(`${r.movil}|${r.numeroReserva}`) && !yaSubidos.has(`${r.movil}|${r.numeroReserva}`));
+    if(!faltan.length) return;
+    const reclamos = faltan.map(r => ({ mes:r.mes||"", movil:r.movil, numeroReserva:String(r.numeroReserva), sede:r.sede||"",
+      tipo:r.tipo||"SIN_NOVEDAD", categoria:r.categoria||"", detalle:r.detalle||"", gravedad:r.gravedad||"media" }));
+    const res = await fetch(CONFIG.API_URL, { method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body: JSON.stringify({ tipo:"reclamos_bulk", accion:"reclamos_bulk", reclamos }) });
+    const j = await res.json().catch(()=>null);
+    if(j && j.ok !== false && !j.error){
+      reclamos.forEach(r => { enNube.add(`${r.movil}|${r.numeroReserva}`); yaSubidos.add(`${r.movil}|${r.numeroReserva}`); });
+      try{ localStorage.setItem("cinzia_reclamos_subidos", JSON.stringify([...yaSubidos])); }catch(e){}
+      showToast(`✓ ${reclamos.length} reclamo${reclamos.length!==1?"s":""} que estaba${reclamos.length!==1?"n":""} solo en este navegador se subió a la nube.`);
+      console.log("Reclamos locales subidos a la nube:", reclamos.length);
+    } else {
+      console.warn("No se pudieron subir los reclamos locales:", j && (j.error || j));
+    }
+  }catch(e){ console.warn("sincronizarReclamosLocales:", e.message); }
+}
+
+// Aplica a RAW_DATA.mantenimiento el ÚLTIMO mantenimiento registrado de cada patente|ítem, tomando
+// juntos lo que hay en Sheets y lo cargado en este navegador (gana el de fecha más nueva; a igual fecha,
+// el último registrado). Las postergaciones ("Ítem (postergada…)") cuentan para el ítem base.
+function claveMantBase(h){
+  const base = String(h.item||"").replace(/\s*\(postergada[^)]*\)\s*$/i, "").trim();
+  return { base, key: (h.patente||"") + "|" + base };
+}
+function aplicarHistorialMant(){
+  if(!RAW_DATA || !RAW_DATA.mantenimiento) return new Set();
+  const ultimo = {};
+  (STATE.historialMant||[]).forEach((h, i) => {
+    if(!h.patente || !h.item || !(Number(h.km) > 0)) return;
+    const { key } = claveMantBase(h);
+    const cand = { fecha: String(h.fecha||"").slice(0,10), km: Number(h.km), orden: i };
+    const prev = ultimo[key];
+    if(!prev || cand.fecha > prev.fecha || (cand.fecha === prev.fecha && cand.orden > prev.orden)) ultimo[key] = cand;
+  });
+  // Móviles dados de alta: no están en la planilla de mantenimiento, así que sus ítems existen solo en el historial
+  // (los cargó "Iniciar mantenimientos"). Para ellos se crean los ítems que falten, así se ven igual en todos los navegadores.
+  const patentesConItems = new Set(RAW_DATA.mantenimiento.map(m => m.patente));
+  const activos = new Set(Object.values(getMovilAPatenteActivo()));
+  const eliminadosCat = new Set(STATE.catalogoEliminados || []);
+  const nombresCat = new Set(((STATE.catalogo && STATE.catalogo.length) ? STATE.catalogo : CATALOGO_DEFAULT).map(c => c.item));
+  Object.entries(ultimo).forEach(([key, u]) => {
+    const corte = key.indexOf("|");
+    const patente = key.slice(0, corte), item = key.slice(corte + 1);
+    const reg = RAW_DATA.mantenimiento.find(m => m.patente===patente && m.item===item);
+    if(reg) reg.proximoKm = u.km;
+    else if(!patentesConItems.has(patente) && activos.has(patente) && nombresCat.has(item) && !eliminadosCat.has(item)){
+      RAW_DATA.mantenimiento.push({ patente, item, proximoKm: u.km, vtoItv: "" });
+    }
+  });
+  return new Set(Object.keys(ultimo));
+}
+
 async function cargarEstadoGuardado(){
   let erroresSync = [];
 
@@ -9078,11 +9371,10 @@ async function cargarEstadoGuardado(){
         fecha: r.Fecha ? (parseGvizDate(r.Fecha) ? fmtISO(parseGvizDate(r.Fecha)) : String(r.Fecha)) : "",
         patente: r.Patente||"", movil:"", item: r.Item||"", km: Number(r.Km)||0, tipo:"mantenimiento"
       }));
-      // Aplicar el último km de cada patente|item al RAW_DATA
-      STATE.historialMant.forEach(h => {
-        const reg = (RAW_DATA||{}).mantenimiento?.find(m => m.patente===h.patente && m.item===h.item);
-        if(reg && h.km) reg.proximoKm = h.km;
-      });
+      // Aplicar el último registro de cada patente|item al RAW_DATA. Se vuelve a aplicar al final de esta
+      // función, porque los ítems agregados al catálogo (filtro suplementario, alineación y balanceo…)
+      // todavía no existen en este punto y quedaban sin marcar como hechos en los otros navegadores.
+      aplicarHistorialMant();
       if(RAW_DATA) STATE.vehicles = buildVehicles(RAW_DATA);
       console.log("Mantenimientos leídos de Sheets:", STATE.historialMant.length);
     }
@@ -9111,9 +9403,11 @@ async function cargarEstadoGuardado(){
           const gv = parseGvizDate(r.Fecha);
           fecha = gv ? fmtISO(gv) : String(r.Fecha).split("T")[0];
         }
-        // Las fotos NUNCA se guardan en Sheets (no entran en una celda) — siempre
-        // se recuperan del navegador que las subió, sin importar cuánto tiempo pasó.
+        // Las fotos se suben a Drive y en Sheets queda el link (columna FotosJSON): las ve cualquier navegador.
+        // Las que este navegador cargó pero todavía no se subieron (base64) se conservan hasta que suban.
         const fotosLocal = localPorId[id]?.fotos;
+        const fotosNube = fotosDeJson(r.FotosJSON);
+        const nubeConoceFotos = !!String(r.FotosJSON||"").trim();
         const saldadoSheets = String(r.Saldado).toUpperCase()==="SI";
         const localPrevio = localPorId[id];
         // Si acá lo marcaste como saldado y Sheets todavía dice que no, gana lo local:
@@ -9124,7 +9418,7 @@ async function cargarEstadoGuardado(){
           saldado,
           _editadoEn: localPrevio?._editadoEn,
           categoria:r.Categoria||"", sede:r.Sede||"",
-          fotos: fotosLocal && fotosLocal.length ? fotosLocal : [] };
+          fotos: unirFotos(fotosNube, fotosLocal || [], nubeConoceFotos) };
       });
       console.log("Costos leídos de Sheets:", STATE.costos.length);
     }
@@ -9227,6 +9521,8 @@ async function cargarEstadoGuardado(){
   // Reclamos nuevos cargados desde el dashboard (planilla dedicada)
   try{
     const rows = await fetchSheetRows(LOG_ID, "Reclamos");
+    // Claves que SÍ están en la nube: después se comparan contra lo cargado solo en este navegador
+    window._reclamosEnNube = new Set((rows||[]).filter(r=>r.Movil&&r.NumeroReserva).map(r => `${r.Movil}|${r.NumeroReserva}`));
     if(rows && rows.length){
       rows.filter(r=>r.Movil&&r.NumeroReserva).forEach(r => {
         const exists = (RAW_DATA.reclamos||[]).find(x =>
@@ -9283,34 +9579,35 @@ async function cargarEstadoGuardado(){
     }
   }catch(e){ console.warn("No hay hoja Reservas todavía:", e.message); }
 
-  // Km manuales — de Sheets Y del localStorage. Este bloque estaba roto: hacía el
-  // fetch pero nunca aplicaba los datos, por eso las actualizaciones de km se perdían.
+  // Km manuales (hoja KmManuales + localStorage). Solo ganan sobre la última inspección si son
+  // de la misma fecha o más nuevos (ver aplicarKmManual).
   try{
     const rowsKm = await fetchSheetRows(LOG_ID, "KmManuales");
-    const kmPorPatente = {};
-    const parseKm = v => {
-      if(!v && v!==0) return 0;
-      if(typeof v==="number") return Math.round(v);
-      return Math.round(Number(String(v).trim().replace(/[.,\s]/g,""))) || 0;
-    };
-    if(rowsKm && rowsKm.length){
-      rowsKm.filter(r=>r.Patente).forEach(r => {
-        const km = parseKm(r.Km);
-        if(km > 0) kmPorPatente[r.Patente] = km;
-      });
-    }
-    const kmLocalStore = JSON.parse(localStorage.getItem("cinzia_km")||"{}");
-    Object.entries(kmLocalStore).forEach(([pat, km]) => { if(parseKm(km) > 0) kmPorPatente[pat] = parseKm(km); });
-
-    // Aplicar sobre la última inspección de cada patente
-    Object.entries(kmPorPatente).forEach(([patente, km]) => {
-      const insps = (RAW_DATA.inspecciones||[]).filter(i => i.patente === patente)
-        .sort((a,b) => (b.fecha||0) - (a.fecha||0));
-      if(insps.length) insps[0].km = km;
-      else RAW_DATA.inspecciones.push({ patente, km, fecha: new Date(), movil: null, inspector: "Carga manual" });
+    let aplicados = 0;
+    (rowsKm||[]).filter(r=>r.Patente).forEach(r => {
+      if(aplicarKmManual(r.Patente, r.Km, parseGvizDate(r.Fecha))) aplicados++;
     });
-    if(Object.keys(kmPorPatente).length) console.log("Km manuales aplicados:", Object.keys(kmPorPatente).length);
+    const kmLocalStore = leerKmLocal();
+    Object.entries(kmLocalStore).forEach(([pat, o]) => {
+      if(o && aplicarKmManual(pat, o.km, o.fecha ? parseGvizDate(o.fecha) : null)) aplicados++;
+    });
+    console.log("Km manuales aplicados (más nuevos que la última inspección):", aplicados);
   }catch(e){ console.warn("No hay hoja KmManuales todavía:", e.message); }
+
+  // KmActual: una fila por móvil con el último km VÁLIDO de las inspecciones, calculado por el script de
+  // la planilla de inspecciones (inspecciones-sync.gs). Sirve de respaldo cuando una celda de km vino
+  // vacía o con texto y la lectura directa la perdió. Si la hoja todavía no existe, se ignora.
+  try{
+    const rowsKA = await fetchSheetRows(CONFIG.SHEETS.kmActual.id, CONFIG.SHEETS.kmActual.sheetName);
+    let n = 0;
+    (rowsKA||[]).forEach(r => {
+      const movil = Number(r.Movil), km = parseKmFlexible(r.Km);
+      const patente = MOVIL_A_PATENTE[movil];
+      if(!patente || !km) return;
+      if(aplicarKmManual(patente, km, parseGvizDate(r.Fecha))) n++;
+    });
+    if(n) console.log("KmActual (script de la planilla) aplicado a", n, "móviles");
+  }catch(e){ console.warn("Sin hoja KmActual todavía:", e.message); }
 
   // Catálogo eliminados — sincronizado entre computadoras (incluye ítems de fábrica)
   try{
@@ -9390,7 +9687,8 @@ async function cargarEstadoGuardado(){
         descTipo: r.DescuentoTipo==="monto" ? "monto" : "pct", descModo: r.DescuentoModo==="despues" ? "despues" : "antes",
         impuestoPct: Number(r.ImpuestoPct||r.ImpuestoMonto)||0, observaciones: r.Observaciones||"",
         cerrado: String(r.Cerrado).toUpperCase()==="SI", cerradoEl: r.CerradoEl||"",
-        items, foto: null
+        items, foto: null,
+        fotos: fotosDeJson(r.FotosJSON), _fotosEnNube: !!String(r.FotosJSON||"").trim()
       };
     });
     // Fusionar por número: si un presupuesto está SOLO en localStorage (todavía no llegó
@@ -9402,9 +9700,9 @@ async function cargarEstadoGuardado(){
         // Existe solo local — conservarlo tal cual (todavía no sincronizó a Sheets)
         porNumero[l.numero] = l;
       } else {
-        // Existe en ambos — conservar las fotos locales (Sheets nunca las tiene)
-        const conFoto = l.fotos?.length || l.foto;
-        if(conFoto) porNumero[l.numero].fotos = l.fotos?.length ? l.fotos : (l.foto ? [l.foto] : []);
+        // Existe en ambos — las fotos de la nube (links de Drive) y las de este navegador que todavía no se subieron
+        const fotosLocal = l.fotos?.length ? l.fotos : (l.foto ? [l.foto] : []);
+        porNumero[l.numero].fotos = unirFotos(porNumero[l.numero].fotos, fotosLocal, porNumero[l.numero]._fotosEnNube);
         // El PDF congelado y el monto final tampoco viven en Sheets (son demasiado
         // grandes/no son necesarios ahí) — siempre se conservan del local si existen.
         if(l.pdfSnapshotHtml) porNumero[l.numero].pdfSnapshotHtml = l.pdfSnapshotHtml;
@@ -9418,6 +9716,9 @@ async function cargarEstadoGuardado(){
       }
     });
     STATE.presupuestos = Object.values(porNumero);
+    STATE.presupuestos.forEach(p => { delete p._fotosEnNube; });
+    // Lo que vino de la nube se da por sincronizado: solo se vuelve a mandar si se edita en este navegador
+    presupuestosSheets.forEach(ps => { const p = porNumero[ps.numero]; if(p) _presFirmas[p.numero] = presFirma(p); });
     localStorage.setItem("cinzia_presupuestos", JSON.stringify(STATE.presupuestos));
     console.log("Presupuestos combinados (Sheets + local):", STATE.presupuestos.length);
   }catch(e){ console.warn("No hay hoja Presupuestos todavía:", e.message); }
@@ -9441,6 +9742,7 @@ async function cargarEstadoGuardado(){
           STATE.precios.recetas = Object.values(vistos);
         }
         localStorage.setItem("cinzia_precios_presupuesto", JSON.stringify(STATE.precios));
+        _preciosFirma = JSON.stringify(STATE.precios);   // sincronizado con la nube: no se vuelve a mandar si no se edita
         console.log("Precios de presupuesto leídos de Sheets.");
       }
     }
@@ -9534,6 +9836,7 @@ async function cargarEstadoGuardado(){
       }
     }
   }catch(e){ console.warn("No hay hoja FlotaCambios todavía:", e.message); }
+  sincronizarMapaFlota();
 
   // Estudio por rotura — sincronizado entre computadoras
   try{
@@ -9577,7 +9880,9 @@ async function cargarEstadoGuardado(){
         desdeSheets = (rowsPV||[]).filter(r => r.ID).map(r => ({
           id:String(r.ID), sede:String(r.Sede||"").toUpperCase(), fecha:fmtISO(parseGvizDate(r.Fecha)), hora:(String(r.Hora||"").match(/(\d{1,2}):(\d{2})/) ? String(r.Hora).match(/(\d{1,2}):(\d{2})/).slice(1).map((x,i)=>i===0?x.padStart(2,"0"):x).join(":") : ""),
           cliente:r.Cliente||"", vehiculo:r.Vehiculo||"", operaciones:r.Operaciones||"", material:r.Material||"",
-          materialListo:String(r.MaterialListo).toUpperCase()==="SI", estado:r.Estado||"Programado"
+          materialListo:String(r.MaterialListo).toUpperCase()==="SI", estado:r.Estado||"Programado",
+          duracion:Number(String(r.DuracionHoras||"").replace(",","."))||2, origen:r.Origen||"interno",
+          matEstado:r.MaterialEstado || (r.Material ? (String(r.MaterialListo).toUpperCase()==="SI" ? "En stock" : "A pedir") : "")
         }));
       }catch(e){ console.warn("Sin hoja Postventa todavía:", e.message); }
     }
@@ -9657,6 +9962,7 @@ async function cargarEstadoGuardado(){
       else RAW_DATA.reclamos.push(r);
     });
     console.log("Reclamos totales tras fusión:", RAW_DATA.reclamos.length);
+    sincronizarReclamosLocales(recLocal);   // sube lo que quedó solo en este navegador (no bloquea la carga)
   }catch(e){ console.warn("Error fusionando reclamos:", e); }
 
   // Reseñas: igual — EMBED + localStorage
@@ -9678,13 +9984,19 @@ async function cargarEstadoGuardado(){
       const yaExiste = STATE.historialMant.some(x => x.patente===h.patente && x.item===h.item && x.km===h.km && x.fecha===h.fecha);
       if(!yaExiste) STATE.historialMant.push(h);
     });
+    // Ahora que el catálogo ya creó los ítems agregados, se aplica el último registro de cada uno
+    // (Sheets + este navegador). Es lo que hace que "hecho" se vea igual en todos los navegadores.
+    const conHistorial = aplicarHistorialMant();
+    // "cinzia_mant" es el formato viejo, sin fecha: solo se usa para lo que NO tiene historial, para que un
+    // valor viejo de este navegador no pise lo que se registró después desde otro.
     const mantLocal = JSON.parse(localStorage.getItem("cinzia_mant")||"{}");
     Object.entries(mantLocal).forEach(([key, km]) => {
+      if(conHistorial.has(key)) return;
       const [patente, item] = key.split("|");
       const reg = (RAW_DATA||{}).mantenimiento?.find(m => m.patente===patente && m.item===item);
       if(reg) reg.proximoKm = km;
     });
-    if(Object.keys(mantLocal).length && RAW_DATA) STATE.vehicles = buildVehicles(RAW_DATA);
+    if(RAW_DATA) STATE.vehicles = buildVehicles(RAW_DATA);
   }catch(e){}
 
   // Aviso visible si la conexión con la planilla falló — antes esto quedaba
@@ -9791,13 +10103,10 @@ async function loadAndRender(){
 
   RAW_DATA = data;
   await cargarEstadoGuardado();
-  // Aplicar km manuales guardados antes de buildVehicles
+  // Aplicar km manuales guardados antes de buildVehicles (solo si son más nuevos que la última inspección)
   try{
-    const kmLocal = JSON.parse(localStorage.getItem("cinzia_km")||"{}");
-    Object.entries(kmLocal).forEach(([patente, km]) => {
-      const ultima = RAW_DATA.inspecciones?.filter(i => String(MOVIL_A_PATENTE[i.movil]||"")===patente || i.patente===patente)
-                      .sort((a,b)=>(b.fecha||0)-(a.fecha||0))[0];
-      if(ultima) ultima.km = km;
+    Object.entries(leerKmLocal()).forEach(([patente, o]) => {
+      if(o) aplicarKmManual(patente, o.km, o.fecha ? parseGvizDate(o.fecha) : null);
     });
   }catch(e){}
   // Restaurar zonas personalizadas
@@ -9813,6 +10122,11 @@ async function loadAndRender(){
   document.getElementById("modeBadge").textContent = isMock ? "Tu Excel (sin Sheets)" : "Datos en vivo";
   document.getElementById("syncInfo").textContent = "Actualizado " + new Date().toLocaleTimeString("es-AR");
   renderAll();
+  if(!isMock){
+    // Un rato después de cargar: sube a la nube lo que haya quedado solo en este navegador (fotos de gastos y
+    // presupuestos, presupuestos sin enviar). No bloquea nada y no repite trabajo si no hay pendientes.
+    setTimeout(() => { try{ enviarPresupuestosPendientes(false); migrarFotosPendientes(); }catch(e){} }, 4000);
+  }
 }
 
 /* =========================================================================
@@ -9845,16 +10159,13 @@ document.getElementById("kmActualizarBtn").addEventListener("click", () => {
   // Actualizar en memoria
   const v = STATE.vehicles?.find(x => x.patente === patente);
   const insp = RAW_DATA.inspecciones?.filter(i => i.patente === patente || MOVIL_A_PATENTE[i.movil] === patente);
-  // Actualizar el km en RAW_DATA directamente
-  if(RAW_DATA.inspecciones){
-    const ultima = RAW_DATA.inspecciones.filter(i => String(MOVIL_A_PATENTE[i.movil]||"") === patente || i.patente === patente)
-                    .sort((a,b) => (b.fecha||0) - (a.fecha||0))[0];
-    if(ultima) ultima.km = nuevoKm;
-  }
-  // Guardar en localStorage
-  const kmLocal = JSON.parse(localStorage.getItem("cinzia_km")||"{}");
-  kmLocal[patente] = nuevoKm;
-  localStorage.setItem("cinzia_km", JSON.stringify(kmLocal));
+  // Actualizar el km en RAW_DATA directamente (la fecha de hoy lo hace ganar sobre inspecciones anteriores)
+  aplicarKmManual(patente, nuevoKm, new Date());
+  // Guardar en localStorage con fecha, para que una inspección posterior de AppSheet lo reemplace
+  const kmLocal = leerKmLocal();
+  kmLocal[patente] = { km: nuevoKm, fecha: todayISO() };
+  localStorage.setItem("cinzia_km_v2", JSON.stringify(kmLocal));
+  localStorage.removeItem("cinzia_km"); // formato viejo sin fecha: era el que pisaba para siempre
 
   // Guardar en Sheets
   enviarRegistro("km_actualizado", { patente, km: nuevoKm, fecha: todayISO() });
@@ -10003,9 +10314,8 @@ document.getElementById("costoSubmit").addEventListener("click", () => {
     if(c){ Object.assign(c, { fecha, detalle, monto, categoria, sede, fotos, _editadoEn: Date.now() }); }
     renderCostosTab();
     guardarEstadoLocal();
-    enviarRegistro("costo", { id:editId, fecha, detalle, monto, categoria, sede, tieneFactura: fotos.length?"SI":"NO", saldado:c?.saldado }, {
-      hoja: "Costos", criterios: { ID: editId, Detalle: detalle }
-    });
+    if(c) enviarRegistro("costo", payloadCosto(c), { hoja: "Costos", criterios: { ID: editId, Detalle: detalle } });
+    migrarFotosPendientes();
     showToast("Gasto actualizado.");
   } else {
     agregarCosto({ fecha, detalle, monto, categoria, sede, fotos, _editadoEn: Date.now() });
@@ -10133,17 +10443,28 @@ function iniciarDashboard(){
   return _dashPromesa;
 }
 
+let _ultimaCargaTs = Date.now();
+function refrescoAutomatico(){
+  if(!_dashPromesa) return;
+  if(document.hidden) return;                                   // pestaña en segundo plano: no gasta lecturas
+  if(_migrandoFotos || _enviandoPres) return;                   // no recargar mientras se suben fotos o presupuestos
+  if(document.querySelector(".modal-backdrop.open")) return;
+  // no refrescar mientras alguien está escribiendo (se perdería lo que tipea)
+  const a = document.activeElement;
+  if(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) return;
+  const tabAntes = STATE.tab;
+  loadAndRender().then(() => {
+    _ultimaCargaTs = Date.now();
+    if(tabAntes !== "flota") switchTab(tabAntes);
+    if(STATE.tab === "kanban") renderKanbanTab();
+  });
+}
 if(CONFIG.AUTO_REFRESH_MINUTES > 0){
-  setInterval(() => {
-    if(!_dashPromesa) return;
-    const anyOpen = document.querySelector(".modal-backdrop.open");
-    if(anyOpen) return;
-    const tabAntes = STATE.tab;
-    loadAndRender().then(() => {
-      if(tabAntes !== "flota") switchTab(tabAntes);
-      if(STATE.tab === "kanban") renderKanbanTab();
-    });
-  }, CONFIG.AUTO_REFRESH_MINUTES * 60 * 1000);
+  setInterval(refrescoAutomatico, CONFIG.AUTO_REFRESH_MINUTES * 60 * 1000);
+  // al volver a la pestaña (o al celular desbloqueado) se actualiza enseguida si pasó más de un minuto
+  document.addEventListener("visibilitychange", () => {
+    if(!document.hidden && Date.now() - _ultimaCargaTs > 60000) refrescoAutomatico();
+  });
 }
 
 /* =========================================================================
@@ -10175,32 +10496,47 @@ function guardarPresupuestosLocal(){
   }catch(e){}
   // El guardado en Sheets se programa SIEMPRE: antes, un error de cuota del localStorage cortaba acá con `return` y el presupuesto nunca llegaba a la nube.
   clearTimeout(_guardarPresDebounce);
-  _guardarPresDebounce = setTimeout(async () => {
-    if(!CONFIG.API_URL) return;
-    const presupuestosSinFoto = STATE.presupuestos.map(p => ({
-      ...p, foto: null, fotos: [], pdfSnapshotHtml: undefined
-    }));
-    try{
-      // Usar fetch con CORS completo (no no-cors) para poder ver el error real si falla
-      const res = await fetch(CONFIG.API_URL, {
-        method:"POST",
-        headers:{"Content-Type":"text/plain;charset=utf-8"},
-        body: JSON.stringify({ tipo:"presupuestos_guardar",
-          presupuestos: JSON.stringify(presupuestosSinFoto),
-          precios: JSON.stringify(STATE.precios) })
-      });
-      const json = await res.json().catch(()=>({}));
-      if(json.guardado){
-        console.log("Presupuestos guardados en Sheets:", json.cantidad);
-      } else {
-        console.warn("Error guardando presupuestos:", json);
-        showToast("⚠ El presupuesto no se pudo confirmar en la nube — revisá la conexión o el backend.", true);
-      }
-    }catch(e){
-      console.warn("No se pudo guardar presupuestos en Sheets:", e.message);
-      showToast("⚠ Sin conexión al guardar el presupuesto en la nube.", true);
+  _guardarPresDebounce = setTimeout(() => { enviarPresupuestosPendientes(true); migrarFotosPendientes(); }, 1500);
+}
+
+// Manda a la nube los presupuestos que cambiaron en este navegador (y los precios, solo si se editaron acá).
+// Se llama al guardar y también un rato después de abrir el dashboard, para subir lo que haya quedado solo local.
+let _enviandoPres = false;
+async function enviarPresupuestosPendientes(avisarSiFalla){
+  if(!CONFIG.API_URL || _enviandoPres) return;
+  const pendientes = presPendientesDeEnvio();
+  const preciosJson = JSON.stringify(STATE.precios);
+  // Sin firma de precios (todavía no se leyeron de la nube) solo se mandan cuando alguien los edita (guardado manual)
+  const mandarPrecios = preciosJson !== _preciosFirma && (_preciosFirma !== null || !!avisarSiFalla);
+  if(!pendientes.length && !mandarPrecios) return;
+  _enviandoPres = true;
+  const presupuestosSinFoto = pendientes.map(presParaNube);
+  try{
+    // Usar fetch con CORS completo (no no-cors) para poder ver el error real si falla
+    const res = await fetch(CONFIG.API_URL, {
+      method:"POST",
+      headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body: JSON.stringify({ tipo:"presupuestos_guardar",
+        presupuestos: JSON.stringify(presupuestosSinFoto),
+        precios: mandarPrecios ? preciosJson : "" })
+    });
+    const json = await res.json().catch(()=>({}));
+    // la respuesta del backend es { ok:true, resultado:{ guardado:true, ... } }
+    const confirmado = (json.ok && json.resultado && json.resultado.guardado) || json.guardado;
+    if(confirmado){
+      presMarcarEnviados(pendientes);
+      if(mandarPrecios) _preciosFirma = preciosJson;
+      console.log("Presupuestos guardados en Sheets:", pendientes.length);
+    } else {
+      console.warn("Error guardando presupuestos:", json);
+      if(avisarSiFalla) showToast("⚠ El presupuesto no se pudo confirmar en la nube — revisá la conexión o el backend.", true);
     }
-  }, 1500);
+  }catch(e){
+    console.warn("No se pudo guardar presupuestos en Sheets:", e.message);
+    if(avisarSiFalla) showToast("⚠ Sin conexión al guardar el presupuesto en la nube.", true);
+  }finally{
+    _enviandoPres = false;
+  }
 }
 
 function cargarPresupuestosLocal(){
@@ -10288,7 +10624,10 @@ async function finalizarPresupuesto(){
   }
   // El pdfSnapshotHtml NUNCA va a Sheets (es demasiado grande para una celda) — queda
   // guardado SOLO en esta computadora, igual que las fotos. Es la misma limitación de siempre.
-  const presupuestosSinFoto = STATE.presupuestos.map(p => ({ ...p, foto: null, fotos: (p.fotos&&p.fotos.length) ? "[fotos guardadas localmente]" : [], pdfSnapshotHtml: undefined }));
+  const pendientesFin = presPendientesDeEnvio();
+  const presupuestosSinFoto = pendientesFin.map(presParaNube);
+  const preciosJsonFin = JSON.stringify(STATE.precios);
+  const mandarPreciosFin = preciosJsonFin !== _preciosFirma;
   const numeroFinalizado = _presActual.numero;
 
   // Guardado DIRECTO y esperado (no por la cola en segundo plano) — así el aviso que ves
@@ -10300,12 +10639,14 @@ async function finalizarPresupuesto(){
     try{
       const res = await fetch(CONFIG.API_URL, {
         method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"},
-        body: JSON.stringify({ tipo:"presupuestos_guardar", presupuestos: JSON.stringify(presupuestosSinFoto), precios: JSON.stringify(STATE.precios) })
+        body: JSON.stringify({ tipo:"presupuestos_guardar", presupuestos: JSON.stringify(presupuestosSinFoto), precios: mandarPreciosFin ? preciosJsonFin : "" })
       });
       const text = await res.text();
       let json = {}; try{ json = JSON.parse(text); }catch(e){}
       if(json.ok && json.resultado && json.resultado.guardado){
-        showToast(`✓ Presupuesto ${numeroFinalizado} guardado en la nube (${json.resultado.cantidad} en total).`);
+        presMarcarEnviados(pendientesFin);
+        if(mandarPreciosFin) _preciosFirma = preciosJsonFin;
+        showToast(`✓ Presupuesto ${numeroFinalizado} guardado en la nube.`);
       } else {
         alert(`⚠ El backend respondió pero NO confirmó el guardado de ${numeroFinalizado}.\n\nHTTP ${res.status}\nRespuesta: ${text.slice(0,500)}\n\nEl presupuesto quedó guardado en esta computadora y se va a reintentar solo. Mandame este mensaje tal cual para diagnosticarlo.`);
       }
@@ -10314,7 +10655,7 @@ async function finalizarPresupuesto(){
     }
   }
   // Además, se encola con reintentos automáticos por si el intento directo de arriba falló.
-  enviarRegistro("presupuestos_guardar", { presupuestos: JSON.stringify(presupuestosSinFoto), precios: JSON.stringify(STATE.precios) }, {
+  enviarRegistro("presupuestos_guardar", { presupuestos: JSON.stringify(presupuestosSinFoto), precios: mandarPreciosFin ? preciosJsonFin : "" }, {
     hoja: "Presupuestos",
     criterios: { Numero: numeroFinalizado }
   });
@@ -10366,6 +10707,57 @@ function renderPresupuestoActual(){
   renderPresTablaItems();
   renderPresTotales();
 }
+
+/* Pegar (Ctrl+V) o arrastrar fotos dentro del presupuesto abierto, sin pasar por el selector de archivos. */
+function presAgregarArchivos(files, inputEl){
+  files = [...files].filter(f => f && /^image\//.test(f.type));
+  if(!files.length || !_presActual || _presActual.cerrado) return;
+  if(!_presActual.fotos) _presActual.fotos = [];
+  let pendientes = files.length;
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, 900 / img.width);
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width * scale;
+        canvas.height = img.height * scale;
+        canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+        _presActual.fotos.push(canvas.toDataURL("image/jpeg", 0.6));
+        pendientes--;
+        if(pendientes === 0){
+          renderPresFotos();
+          guardarPresupuestoActual();
+          if(typeof migrarFotosPendientes === "function") try{ migrarFotosPendientes(); }catch(_){}
+          if(inputEl) inputEl.value = "";
+        }
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+function presEstaAbierto(){
+  const m = document.getElementById("mainPresupuestos");
+  return !!(m && m.style.display !== "none" && _presActual);
+}
+document.addEventListener("paste", (e) => {
+  if(document.getElementById("costoModalBackdrop")?.classList.contains("open")) return;
+  if(!presEstaAbierto()) return;
+  const imgs = [...(e.clipboardData?.items || [])].filter(i => i.kind === "file" && /^image\//.test(i.type)).map(i => i.getAsFile());
+  if(!imgs.length) return;
+  e.preventDefault();
+  presAgregarArchivos(imgs);
+  toast && typeof toast === "function" && toast("Foto pegada en el presupuesto");
+});
+document.addEventListener("dragover", (e) => { if(presEstaAbierto() && e.dataTransfer && [...e.dataTransfer.types].includes("Files")) e.preventDefault(); });
+document.addEventListener("drop", (e) => {
+  if(!presEstaAbierto() || !e.dataTransfer || !e.dataTransfer.files.length) return;
+  if(!e.target.closest || !e.target.closest("#mainPresupuestos")) return;
+  e.preventDefault();
+  presAgregarArchivos(e.dataTransfer.files);
+});
 
 document.addEventListener("change", (e) => {
   if(e.target.id === "presFotoInput"){
@@ -10684,6 +11076,28 @@ function presAgregarFilaManual(){
   if(!_presActual.items) _presActual.items = [];
   _presActual.items.push({ tipo:"manual", nombre:"", cantidad:1, unidad:"unidad", precioUnitario:0, subtotal:0 });
   renderPresTablaItems();
+}
+
+function presAgregarCargoEspecial(){
+  if(_presActual?.cerrado){ showToast('Este presupuesto está finalizado — duplicalo desde el Historial para modificarlo.', true); return; }
+  if(!_presActual){ showToast("Abrí o creá un presupuesto primero.", true); return; }
+  const nombre = document.getElementById("presExtraNombre").value.trim();
+  const monto = Number(document.getElementById("presExtraMonto").value) || 0;
+  const cant = Number(document.getElementById("presExtraCant").value) || 1;
+  const inp = document.getElementById("presExtraFotos");
+  if(!nombre){ showToast("Poné el concepto del cargo.", true); return; }
+  if(monto <= 0){ showToast("Poné el costo unitario.", true); return; }
+  if(!_presActual.items) _presActual.items = [];
+  _presActual.items.push({ tipo:"manual", nombre, cantidad:cant, unidad:"unidad", precioUnitario:monto, subtotal:cant*monto, cargoEspecial:true });
+  if(inp.files.length) presAgregarArchivos(inp.files, inp);
+  document.getElementById("presExtraNombre").value = "";
+  document.getElementById("presExtraMonto").value = "";
+  document.getElementById("presExtraCant").value = 1;
+  inp.value = "";
+  renderPresTablaItems();
+  renderPresTotales();
+  guardarPresupuestoActual();
+  showToast(`"${nombre}" agregado (${fmtMoneda(cant*monto)}).`);
 }
 
 function presEliminarItem(idx){
@@ -11185,7 +11599,9 @@ function construirHtmlPresupuesto(p){
       <div class="info-item"><div class="lbl">Tipo de trabajo</div><div class="val">${p.tipoTrabajo||"—"}</div></div>
     </div>
 
-    ${fotosValidas.length ? `<h2>Registro fotográfico</h2><div class="fotos-grid">${fotosValidas.map(f=>`<figure><img src="${f}"></figure>`).join("")}</div>` : ""}
+    ${fotosValidas.length ? `<h2>Registro fotográfico</h2><div class="fotos-grid">${fotosValidas.map((f,i)=> f.startsWith("http")
+      ? `<figure><a href="${f}" target="_blank" rel="noopener" title="Abrir foto ${i+1} en tamaño completo" style="color:inherit;text-decoration:none;"><img src="${f}"><figcaption style="font-size:9px;text-align:center;padding:2px;color:#f28c28;">Foto ${i+1} — abrir ↗</figcaption></a></figure>`
+      : `<figure><img src="${f}"></figure>`).join("")}</div>` : ""}
 
     <h2>Detalle de trabajos y materiales</h2>
     <table>
@@ -11285,10 +11701,118 @@ function exportarPreciosExcel(){
   showToast("Precios exportados.");
 }
 /* =========================================================================
+   PESTAÑA: Reservas con datos del cliente
+   Lee la app web del robot del calendario (doGet de sync-calendario.gs). La URL y la clave se piden una vez y quedan
+   en este navegador (localStorage); la planilla de clientes sigue siendo privada.
+   ========================================================================= */
+let RES_CLI = { lista: [], generado: "", cargando: false, error: "" };
+function resCfg(){ try{ return JSON.parse(localStorage.getItem("cinzia_res_cfg")||"{}"); }catch(e){ return {}; } }
+function configurarReservasClientes(){
+  const c = resCfg();
+  const url = prompt("URL de la app web del robot del calendario (termina en /exec):", c.url || "");
+  if(url === null) return;
+  const clave = prompt("Clave de acceso:", c.clave || "");
+  if(clave === null) return;
+  try{ localStorage.setItem("cinzia_res_cfg", JSON.stringify({ url:url.trim(), clave:clave.trim() })); }catch(e){}
+  cargarReservasClientes(true);
+}
+async function cargarReservasClientes(forzar){
+  const c = resCfg();
+  if(!c.url || !c.clave){ RES_CLI.error = "Falta configurar la conexión (botón ⚙ Conexión)."; renderReservasTab(); return; }
+  if(RES_CLI.cargando) return;
+  if(!forzar && RES_CLI.generado && (Date.now() - Date.parse(RES_CLI.generado)) < 120000) return;
+  RES_CLI.cargando = true; renderReservasTab();
+  try{
+    const r = await fetch(c.url + (c.url.includes("?")?"&":"?") + "clave=" + encodeURIComponent(c.clave), { cache:"no-store" });
+    const j = await r.json();
+    if(!j.ok) throw new Error(j.error || "respuesta inválida");
+    RES_CLI.lista = j.reservas || []; RES_CLI.generado = j.generado || new Date().toISOString(); RES_CLI.error = "";
+  }catch(e){ RES_CLI.error = "No se pudieron leer las reservas: " + e.message; }
+  RES_CLI.cargando = false; renderReservasTab();
+}
+function renderReservasTab(){
+  const el = document.getElementById("resLista"); if(!el) return;
+  const est = document.getElementById("resEstado");
+  est.innerHTML = RES_CLI.cargando ? "Cargando…" : RES_CLI.error ? `<span style="color:var(--red);">${pvEsc(RES_CLI.error)}</span>`
+    : RES_CLI.generado ? `${RES_CLI.lista.length} reservas cargadas · actualizado ${new Date(RES_CLI.generado).toLocaleTimeString("es-AR",{hour:"2-digit",minute:"2-digit"})}` : "";
+  const sede = document.getElementById("resFiltroSede").value, rango = document.getElementById("resFiltroRango").value;
+  const q = (document.getElementById("resBuscar").value||"").toLowerCase().trim();
+  const hoy = fmtISO(new Date()), mas7 = pvSumarDias(hoy,7), mas30 = pvSumarDias(hoy,30);
+  let L = RES_CLI.lista.filter(r => {
+    if(sede !== "todas" && String(r.sede).toUpperCase() !== sede) return false;
+    if(rango === "hoy" && r.inicio !== hoy && r.fin !== hoy) return false;
+    if(rango === "semana" && !((r.inicio >= hoy && r.inicio <= mas7) || (r.fin >= hoy && r.fin <= mas7))) return false;
+    if(rango === "mes" && !((r.inicio >= hoy && r.inicio <= mas30) || (r.fin >= hoy && r.fin <= mas30))) return false;
+    if(rango === "curso" && !(r.inicio <= hoy && r.fin >= hoy)) return false;
+    if(q && !(`${r.numero} ${r.nombre} ${r.apellido} ${r.email} ${r.tel} ${r.movil} ${r.modelo}`.toLowerCase().includes(q))) return false;
+    return true;
+  });
+  L.sort((a,b) => (a.inicio < b.inicio ? -1 : a.inicio > b.inicio ? 1 : 0));
+  if(!L.length){ el.innerHTML = `<div class="panel-empty">${RES_CLI.error ? "" : "No hay reservas con ese filtro."}</div>`; return; }
+  const fd = iso => { const p = String(iso||"").split("-"); return p.length===3 ? `${p[2]}/${p[1]}` : "—"; };
+  const tel = t => { const n = String(t||"").replace(/[^\d+]/g,""); return n ? `<a href="tel:${n}" style="color:var(--accent);">${pvEsc(t)}</a> <a href="https://wa.me/${n.replace(/^\+/,"")}" target="_blank" rel="noopener" title="WhatsApp" style="text-decoration:none;">💬</a>` : "—"; };
+  el.innerHTML = `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:12px;">
+    <thead><tr style="text-align:left;color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;">
+      <th style="padding:6px 8px;">N°</th><th style="padding:6px 8px;">Cliente</th><th style="padding:6px 8px;">Teléfono</th><th style="padding:6px 8px;">Mail</th>
+      <th style="padding:6px 8px;">Sede</th><th style="padding:6px 8px;">Vehículo</th><th style="padding:6px 8px;">Sale</th><th style="padding:6px 8px;">Vuelve</th><th style="padding:6px 8px;"></th></tr></thead><tbody>` +
+    L.map(r => {
+      const sale = r.inicio === hoy, vuelve = r.fin === hoy;
+      const mk = (iso, hoyFlag) => `<span style="${hoyFlag?"font-weight:700;color:var(--amber);":""}">${fd(iso)}${hoyFlag?" · HOY":""}</span>`;
+      return `<tr style="border-top:1px solid var(--border);">
+        <td style="padding:7px 8px;font-family:var(--mono);">${pvEsc(r.numero)}</td>
+        <td style="padding:7px 8px;font-weight:600;">${pvEsc((r.nombre+" "+r.apellido).trim()) || "<span style='color:var(--muted);font-weight:400;'>sin datos todavía</span>"}</td>
+        <td style="padding:7px 8px;white-space:nowrap;">${tel(r.tel)}</td>
+        <td style="padding:7px 8px;">${r.email ? `<a href="mailto:${pvEsc(r.email)}" style="color:var(--accent);">${pvEsc(r.email)}</a>` : "—"}</td>
+        <td style="padding:7px 8px;">${pvEsc(r.sede)}</td>
+        <td style="padding:7px 8px;">${pvEsc(r.modelo)}${r.movil ? ` <span style="color:var(--muted);">(reserva: M${pvEsc(r.movil)})</span>` : ""}</td>
+        <td style="padding:7px 8px;white-space:nowrap;">${mk(r.inicio, sale)}</td>
+        <td style="padding:7px 8px;white-space:nowrap;">${mk(r.fin, vuelve)}</td>
+        <td style="padding:7px 8px;">${r.link ? `<a href="${pvEsc(r.link)}" target="_blank" rel="noopener" style="color:var(--accent);">enlace ↗</a>` : ""}</td></tr>`;
+    }).join("") + `</tbody></table></div>`;
+}
+
+/* =========================================================================
    MÓDULO: Postventa — turnos de taller (CBA / BSAS) + días con lugar sugeridos
    ========================================================================= */
 if(!STATE.postventa) STATE.postventa = [];
-const PV_SEDES = ["CBA","BSAS"];
+const PV_SEDES = ["CBA","BSAS","BRC","SALTA"];
+const PV_H0 = 9, PV_H1 = 18;   // jornada del taller
+const PV_MAT_OK = ["En stock","Recibido"];
+function pvMatPendiente(t){ return !!(t.material && !PV_MAT_OK.includes(t.matEstado)); }
+function pvHoraNum(h){ const m = String(h||"").match(/(\d{1,2}):(\d{2})/); const v = m ? Number(m[1]) + Number(m[2])/60 : PV_H0; return Math.min(Math.max(v, PV_H0), PV_H1 - 0.5); }
+function pvSumarDias(iso, n){ const d = new Date(iso+"T12:00:00"); d.setDate(d.getDate()+n); return fmtISO(d); }
+// Reparte la duración estimada en tramos por día (9 a 18, saltando domingos) → base del Gantt y del control de superposición.
+function pvTramos(t){
+  const out = []; let horas = Number(t.duracion) > 0 ? Number(t.duracion) : 2;
+  let iso = t.fecha, desde = pvHoraNum(t.hora);
+  for(let k=0; k<60 && horas > 0.001 && iso; k++){
+    if(new Date(iso+"T12:00:00").getDay() === 0){ iso = pvSumarDias(iso, 1); desde = PV_H0; continue; }
+    const usa = Math.min(horas, PV_H1 - desde);
+    out.push({ iso, desde, hasta: desde + usa });
+    horas -= usa; iso = pvSumarDias(iso, 1); desde = PV_H0;
+  }
+  return out;
+}
+function pvSuperpuestos(t){
+  const mios = pvTramos(t);
+  return (STATE.postventa||[]).filter(o => o.id !== t.id && o.sede === t.sede && o.estado !== "Cancelado" && o.estado !== "Realizado")
+    .filter(o => pvTramos(o).some(a => mios.some(b => a.iso === b.iso && a.desde < b.hasta - 0.001 && b.desde < a.hasta - 0.001)));
+}
+function pvAvisoModal(){
+  const el = document.getElementById("pvAviso"); if(!el) return;
+  const t = { id: document.getElementById("pvId").value, sede: document.getElementById("pvSede").value, fecha: document.getElementById("pvFecha").value,
+    hora: document.getElementById("pvHora").value, duracion: document.getElementById("pvDuracion").value, estado: "Programado" };
+  if(!t.fecha){ el.innerHTML = ""; return; }
+  const hoy = fmtISO(new Date()); const msgs = [];
+  const orig = document.getElementById("pvModalBackdrop").dataset.fechaOrig || "";
+  if(t.fecha < hoy && t.fecha !== orig) msgs.push(`<span style="color:var(--red);">⛔ La fecha ya pasó: elegí hoy o una fecha futura.</span>`);
+  if(new Date(t.fecha+"T12:00:00").getDay() === 0) msgs.push(`<span style="color:var(--amber);">⚠ Es domingo: el taller no trabaja, el turno correrá al lunes.</span>`);
+  const sup = pvSuperpuestos(t);
+  if(sup.length) msgs.push(`<span style="color:var(--amber);">⚠ Se superpone con: ${sup.map(o=>pvEsc(o.cliente)+" ("+(o.hora||"9:00")+")").join(", ")}</span>`);
+  const tr = pvTramos(t); if(tr.length){ const u = tr[tr.length-1]; const hh = Math.floor(u.hasta), mm = Math.round((u.hasta-hh)*60);
+    msgs.push(`<span style="color:var(--muted);">Termina ${u.iso===t.fecha?"el mismo día":"el "+u.iso.split("-").reverse().join("/")} a las ${hh}:${String(mm).padStart(2,"0")}</span>`); }
+  el.innerHTML = msgs.join(" · ");
+}
 const PV_ESTADO_COLOR = { "Programado":"var(--accent)", "En taller":"var(--amber)", "Realizado":"var(--green)", "Cancelado":"var(--muted)" };
 
 function pvEsc(s){ return String(s??"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
@@ -11337,9 +11861,11 @@ function renderPostventaTab(){
     { label:"Turnos pendientes", value:activos.length, color:"var(--accent)" },
     { label:"Hoy", value:activos.filter(t=>t.fecha===hoyISO).length, color:"var(--amber)" },
     { label:"Próximos 7 días", value:activos.filter(t=>t.fecha>=hoyISO && t.fecha<=semISO).length, color:"var(--green)" },
-    { label:"Con material sin conseguir", value:activos.filter(t=>t.material && !t.materialListo).length, color:"var(--red)" }
+    { label:"Con material sin conseguir", value:activos.filter(pvMatPendiente).length, color:"var(--red)" }
   ];
   document.getElementById("pvKpis").innerHTML = kpis.map(c => `<div class="kpi-card"><div class="kpi-value">${c.value}</div><div class="kpi-label">${c.label}</div><div class="kpi-bar"><div class="kpi-bar-fill" style="width:100%;background:${c.color}"></div></div></div>`).join("");
+
+  pvRenderGantt(sedes);
 
   // Días con lugar
   const DIAS = ["dom","lun","mar","mié","jue","vie","sáb"];
@@ -11387,11 +11913,11 @@ function renderPostventaTab(){
     const vencido = (t.estado==="Programado") && t.fecha < hoyISO;
     const ops = String(t.operaciones||"").split(/\r?\n/).map(s=>s.trim()).filter(Boolean).map(s => `<li>${pvEsc(s)}</li>`).join("");
     const matBadge = t.material
-      ? (t.materialListo ? `<span style="font-size:10.5px;padding:2px 8px;border-radius:99px;background:var(--green-bg);color:var(--green);">✓ Material listo: ${pvEsc(t.material)}</span>`
-                         : `<span style="font-size:10.5px;padding:2px 8px;border-radius:99px;background:var(--red-bg);color:var(--red);">⚠ Falta material: ${pvEsc(t.material)}</span>`)
+      ? (!pvMatPendiente(t) ? `<span style="font-size:10.5px;padding:2px 8px;border-radius:99px;background:var(--green-bg);color:var(--green);">✓ ${pvEsc(t.matEstado||"Material listo")}: ${pvEsc(t.material)}</span>`
+                         : `<span style="font-size:10.5px;padding:2px 8px;border-radius:99px;background:var(--red-bg);color:var(--red);">⚠ ${pvEsc(t.matEstado||"Falta material")}: ${pvEsc(t.material)}</span>`)
       : "";
     return head + `<div class="list-row" style="align-items:flex-start;gap:12px;cursor:pointer;" onclick="abrirModalPostventa('${t.id}')">
-      <div style="min-width:64px;font-family:var(--mono);font-size:13px;font-weight:700;">${t.hora||"—"}<div style="font-size:9px;color:var(--muted);font-weight:500;">${t.sede}</div></div>
+      <div style="min-width:64px;font-family:var(--mono);font-size:13px;font-weight:700;">${t.hora||"—"}<div style="font-size:9px;color:var(--muted);font-weight:500;">${t.sede} · ${t.duracion||2} hs</div></div>
       <div style="flex:1;min-width:0;">
         <div style="font-size:13px;font-weight:700;">${pvEsc(t.cliente)} <span style="font-weight:400;color:var(--muted);font-size:11.5px;">${pvEsc(t.vehiculo)}</span></div>
         <ul style="margin:4px 0 6px 16px;padding:0;font-size:12px;line-height:1.5;">${ops}</ul>
@@ -11418,11 +11944,40 @@ function abrirModalPostventa(id, pre){
   document.getElementById("pvVehiculo").value = v.vehiculo || "";
   document.getElementById("pvOperaciones").value = v.operaciones || "";
   document.getElementById("pvMaterial").value = v.material || "";
-  document.getElementById("pvMaterialListo").checked = !!v.materialListo;
+  document.getElementById("pvMatEstado").value = v.matEstado || "";
+  document.getElementById("pvDuracion").value = v.duracion || 2;
+  document.getElementById("pvModalBackdrop").dataset.fechaOrig = t ? t.fecha : "";
   document.getElementById("pvEstado").value = v.estado || "Programado";
   document.getElementById("pvBtnEliminar").style.display = t ? "block" : "none";
   document.getElementById("pvModalBackdrop").classList.add("open");
+  pvAvisoModal();
 }
+
+function pvRenderGantt(sedes){
+  const el = document.getElementById("pvGantt"); if(!el) return;
+  const DIAS = ["dom","lun","mar","mié","jue","vie","sáb"], W = 64, N = 14, LBL = 150;
+  const hoy = fmtISO(new Date());
+  const dias = Array.from({length:N}, (_,i) => pvSumarDias(hoy, i));
+  const cab = dias.map(iso => { const d = new Date(iso+"T12:00:00");
+    return `<div style="width:${W}px;flex:none;text-align:center;font-size:10px;padding:3px 0;border-left:1px solid var(--border);${d.getDay()===0?"background:var(--panel-3);opacity:.6;":""}${iso===hoy?"color:var(--accent);font-weight:700;":"color:var(--muted);"}">${DIAS[d.getDay()]} ${d.getDate()}/${d.getMonth()+1}</div>`; }).join("");
+  const fondo = dias.map((iso,i) => { const d = new Date(iso+"T12:00:00");
+    return `<div style="position:absolute;left:${i*W}px;top:0;bottom:0;width:${W}px;border-left:1px solid var(--border);${d.getDay()===0?"background:var(--panel-3);opacity:.5;":""}${iso===hoy?"background:rgba(88,166,255,.07);":""}"></div>`; }).join("");
+  el.innerHTML = `<div style="min-width:${LBL+N*W}px;">` + sedes.map(sede => {
+    const turnos = (STATE.postventa||[]).filter(t => t.sede===sede && (t.estado==="Programado" || t.estado==="En taller"))
+      .map(t => ({ t, tr: pvTramos(t).filter(x => dias.includes(x.iso)) })).filter(x => x.tr.length)
+      .sort((a,b) => (a.tr[0].iso+a.tr[0].desde) < (b.tr[0].iso+b.tr[0].desde) ? -1 : 1);
+    const filas = turnos.map(({t,tr}) => {
+      const col = t.estado==="En taller" ? "var(--amber)" : "var(--accent)";
+      const barras = tr.map((x,k) => { const left = dias.indexOf(x.iso)*W + (x.desde-PV_H0)/(PV_H1-PV_H0)*W, w = Math.max(6,(x.hasta-x.desde)/(PV_H1-PV_H0)*W);
+        return `<div onclick="abrirModalPostventa('${t.id}')" title="${pvEsc(t.cliente+" — "+t.duracion+" hs"+(t.hora?" desde "+t.hora:""))}" style="position:absolute;top:3px;height:20px;left:${left}px;width:${w}px;background:${col};border-radius:4px;${pvMatPendiente(t)?"border:2px solid var(--red);box-sizing:border-box;":""}color:#fff;font-size:10px;line-height:18px;padding:0 4px;overflow:hidden;white-space:nowrap;cursor:pointer;">${k===0?pvEsc(t.cliente):""}</div>`; }).join("");
+      return `<div style="display:flex;border-top:1px solid var(--border);"><div style="width:${LBL}px;flex:none;font-size:11px;padding:5px 6px 0 0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">${pvEsc(t.cliente)}<span style="color:var(--muted);"> · ${t.duracion} hs</span></div><div style="position:relative;width:${N*W}px;height:26px;">${fondo}${barras}</div></div>`;
+    }).join("") || `<div style="font-size:11.5px;color:var(--muted);padding:8px 0;">Sin turnos en los próximos 14 días.</div>`;
+    return `<div style="margin-bottom:14px;"><div style="font-size:12px;font-weight:700;margin-bottom:4px;">${SEDE_LABEL[sede]||sede}</div>
+      <div style="display:flex;"><div style="width:${LBL}px;flex:none;"></div>${cab}</div>${filas}</div>`;
+  }).join("") + `<div style="font-size:10.5px;color:var(--muted);"><span style="color:var(--accent);">■</span> programado &nbsp;<span style="color:var(--amber);">■</span> en taller &nbsp;<span style="color:var(--red);">▢</span> borde rojo = falta material</div></div>`;
+}
+document.addEventListener("change", e => { if(["pvFecha","pvHora","pvDuracion","pvSede"].includes(e.target.id)) pvAvisoModal(); });
+document.addEventListener("input", e => { if(["pvHora","pvDuracion"].includes(e.target.id)) pvAvisoModal(); });
 
 function pvRefrescarVistas(){
   if(STATE.tab === "postventa") renderPostventaTab();
@@ -11441,14 +11996,22 @@ function guardarTurnoPostventa(){
     vehiculo: document.getElementById("pvVehiculo").value.trim(),
     operaciones: document.getElementById("pvOperaciones").value.trim(),
     material: document.getElementById("pvMaterial").value.trim(),
-    materialListo: document.getElementById("pvMaterialListo").checked,
+    matEstado: document.getElementById("pvMatEstado").value,
+    duracion: Math.max(0.5, Number(document.getElementById("pvDuracion").value) || 2),
+    origen: (STATE.postventa||[]).find(x => x.id===id)?.origen || "interno",
     estado: document.getElementById("pvEstado").value
   };
+  t.materialListo = !!t.material && PV_MAT_OK.includes(t.matEstado);
+  if(t.material && !t.matEstado) t.matEstado = "A pedir";
   if(!t.fecha || !t.cliente || !t.operaciones){ showToast("Completá fecha, cliente y las operaciones a realizar.", true); return; }
+  const orig = document.getElementById("pvModalBackdrop").dataset.fechaOrig || "";
+  if((t.estado==="Programado" || t.estado==="En taller") && t.fecha < fmtISO(new Date()) && t.fecha !== orig){ showToast("La fecha ya pasó: elegí hoy o una fecha futura.", true); return; }
+  const sup = (t.estado==="Programado" || t.estado==="En taller") ? pvSuperpuestos(t) : [];
+  if(sup.length && !confirm("Este turno se superpone con: " + sup.map(o => o.cliente + " (" + (o.hora||"9:00") + ")").join(", ") + ".\n¿Guardar igual?")) return;
   const i = STATE.postventa.findIndex(x => x.id===id);
   if(i >= 0) STATE.postventa[i] = t; else STATE.postventa.push(t);
   guardarEstadoLocal();
-  enviarRegistro("postventa_turno", { ...t, materialListo: t.materialListo ? "SI" : "NO" }, { hoja:"Postventa", criterios:{ ID:id } });
+  enviarRegistro("postventa_turno", { ...t, materialListo: t.materialListo ? "SI" : "NO", duracionHoras: t.duracion }, { hoja:"Postventa", criterios:{ ID:id } });
   document.getElementById("pvModalBackdrop").classList.remove("open");
   pvRefrescarVistas();
   showToast("Turno guardado — ya aparece en el calendario.");
@@ -11470,7 +12033,7 @@ function pvEventosCalendario(iso, sede){
   return (STATE.postventa||[])
     .filter(t => t.fecha===iso && t.estado!=="Cancelado" && (sede==="todas" || t.sede===sede))
     .map(t => ({ id:t.id, tipo:"postventa", fecha:t.fecha, hora:t.hora, sede:t.sede, movil:"",
-      desc:`${t.cliente}${t.vehiculo?" — "+t.vehiculo:""}`, postventa:t.operaciones.split(/\r?\n/).filter(Boolean).join(" · ") + (t.material && !t.materialListo ? `  ⚠ falta: ${t.material}` : ""),
+      desc:`${t.cliente}${t.vehiculo?" — "+t.vehiculo:""}`, postventa:t.operaciones.split(/\r?\n/).filter(Boolean).join(" · ") + (pvMatPendiente(t) ? `  ⚠ falta: ${t.material}` : ""),
       reserva:"", _pv:true }));
 }
 
@@ -12357,20 +12920,13 @@ function setHash(h){
 }
 function setFrame(f){
   S.frame = f;
-  $("opInicio").style.display    = f === "inicio"   ? "flex"  : "none";
-  $("opCel").style.display       = f === "cel"      ? "block" : "none";
-  $("opPC").style.display        = f === "pc"       ? "flex"  : "none";
-  // Frame reservas — si existe
-  const frRes = document.getElementById("opReservas");
-  if(frRes) frRes.style.display  = f === "reservas" ? "flex"  : "none";
-  $("opSec").textContent = f === "cel"      ? "Tour de terreno"
-                         : f === "pc"       ? "Reunión · Indicadores"
-                         : f === "reservas" ? "Calendario de Reservas"
-                         : "Gestión operativa";
+  $("opInicio").style.display = f === "inicio" ? "flex" : "none";
+  $("opCel").style.display = f === "cel" ? "block" : "none";
+  $("opPC").style.display = f === "pc" ? "flex" : "none";
+  $("opSec").textContent = f === "cel" ? "Tour de terreno" : f === "pc" ? "Reunión · Indicadores" : "Gestión operativa";
   $("opBack").textContent = f === "inicio" ? "← Inicio" : "← Volver";
-  setHash(f === "cel" ? "tour" : f === "pc" ? "reunion/"+S.tab : f === "reservas" ? "reservas" : "operativa");
+  setHash(f === "cel" ? "tour" : f === "pc" ? "reunion/"+S.tab : "operativa");
   if(f === "inicio") return;
-  if(f === "reservas"){ opAbrirReservasFrame(); return; }
   $("opSede").value = S.sede;
   render(); cargar(true);
 }
@@ -12551,149 +13107,6 @@ function boot(){
 }
 window.Op = { S, cargar, render, enviar };
 if(document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else boot();
-})();
-</script>
-
-<script>
-/* ===== PARCHE: calendario real en Reservas + móvil nuevo con mantenimientos ===== */
-(function(){
-  var MESES=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
-  var COL={CBA:"#3b82f6",BSAS:"#22c55e",BRC:"#a855f7",SALTA:"#f59e0b",MZA:"#14b8a6"};
-  var SEDN={CBA:"Córdoba",BSAS:"Buenos Aires",BRC:"Bariloche",SALTA:"Salta",MZA:"Mendoza"};
-  var ST={y:new Date().getFullYear(),m:new Date().getMonth(),sede:"todas",sel:null};
-  var OK={a:false,b:false};
-  function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
-  function pad(n){return n<10?"0"+n:""+n;}
-  function fD(v){if(!v)return null;var d=v instanceof Date?v:new Date(v);return isNaN(d.getTime())?null:d;}
-  function ddmm(d){return pad(d.getDate())+"/"+pad(d.getMonth()+1);}
-  function datos(){
-    var src=(typeof RAW_DATA!=="undefined"&&RAW_DATA&&RAW_DATA.calendarioPanel)||[];
-    return src.map(function(r){return {mov:Number(r.movil)||0,num:String(r.numeroReserva||""),fi:fD(r.fechaInicio),ff:fD(r.fechaFin),sede:String(r.sede||"").toUpperCase().trim(),tipo:r.estado||"Reserva",cli:r.cliente||"",edit:!!r.movilEditado};})
-      .filter(function(e){return e.fi&&e.ff;});
-  }
-  function patente(m){try{var mp=getMovilAPatenteActivo();return mp[m]||"";}catch(e){return "";}}
-  function flota(){try{return Object.keys(getMovilAPatenteActivo()).map(Number);}catch(e){return [];}}
-
-  var st=document.createElement("style");
-  st.textContent=".rc{padding:14px 18px 30px;color:var(--text);font-family:inherit}.rc-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}.rc-bar button,.rc-bar select{background:var(--panel-2);border:1px solid var(--border);color:var(--text);border-radius:7px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer}.rc-mes{font-size:15px;font-weight:800;min-width:150px;text-align:center}.rc-chips{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}.rc-chip{background:var(--panel-2);border:1px solid var(--border);border-radius:8px;padding:7px 14px;font-size:11px;color:var(--muted)}.rc-chip b{display:block;font-size:19px;color:var(--text)}.rc-sync{font-size:11px;padding:6px 12px;border-radius:7px;margin-bottom:10px;display:inline-block}.rc-sync.ok{background:rgba(47,182,124,.14);color:#2FB67C}.rc-sync.warn{background:rgba(217,162,59,.14);color:#D9A23B}.rc-sync.bad{background:rgba(226,88,90,.14);color:#E2585A}.rc-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:10px;background:var(--panel)}.rc-t{min-width:900px}.rc-h,.rc-r{display:grid;grid-template-columns:92px 1fr}.rc-h{border-bottom:1px solid var(--border);font-size:10px;color:var(--muted);font-weight:700}.rc-d{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;text-align:center}.rc-d span{padding:6px 0;border-left:1px solid var(--border)}.rc-d .we{color:#5b6070}.rc-d .hoy{color:#fff;background:var(--accent);font-weight:800}.rc-r{border-top:1px solid var(--border);min-height:36px}.rc-r:first-of-type{border-top:none}.rc-mv{padding:7px 10px;font-size:12px;font-weight:800;display:flex;flex-direction:column;justify-content:center;line-height:1.2}.rc-mv small{font-size:9.5px;color:var(--muted);font-weight:500}.rc-l{position:relative;height:36px;background:repeating-linear-gradient(90deg,transparent 0,transparent calc(100%/var(--n) - 1px),rgba(255,255,255,.05) calc(100%/var(--n) - 1px),rgba(255,255,255,.05) calc(100%/var(--n)))}.rc-b{position:absolute;top:5px;bottom:5px;border-radius:5px;font-size:10px;font-weight:800;color:#fff;display:flex;align-items:center;padding:0 6px;overflow:hidden;white-space:nowrap;cursor:pointer;min-width:4px;box-shadow:0 1px 3px rgba(0,0,0,.35)}.rc-b:hover{filter:brightness(1.2)}.rc-b.ofe{background:transparent!important;border:1px dashed currentColor;color:var(--text)}.rc-b.srv{background:repeating-linear-gradient(45deg,#4b5563,#4b5563 6px,#374151 6px,#374151 12px)!important}.rc-b.sel{outline:2px solid #fff;z-index:3}.rc-hoyl{position:absolute;top:0;bottom:0;width:2px;background:var(--accent);opacity:.8;pointer-events:none;z-index:2}.rc-leg{display:flex;gap:14px;flex-wrap:wrap;margin:10px 2px;font-size:11px;color:var(--muted)}.rc-leg i{display:inline-block;width:14px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}.rc-det{margin-top:10px;padding:12px 16px;background:var(--panel-2);border:1px solid var(--border);border-radius:9px;font-size:12.5px;line-height:1.7}.rc-vacio{padding:34px;text-align:center;color:var(--muted)}";
-  document.head.appendChild(st);
-
-  function pintar(id){
-    var el=document.getElementById(id); if(!el)return;
-    var all=datos(), y=ST.y, m=ST.m, n=new Date(y,m+1,0).getDate(), ini=new Date(y,m,1), fin=new Date(y,m,n,23,59,59);
-    var hoy=new Date(); hoy.setHours(0,0,0,0);
-    var sedes={}; all.forEach(function(e){if(e.sede)sedes[e.sede]=1;});
-    var lista=all.filter(function(e){return e.fi<=fin&&e.ff>=ini&&(ST.sede==="todas"||e.sede===ST.sede);});
-    var cR=lista.filter(function(e){return e.tipo==="Reserva";}).length, cO=lista.filter(function(e){return e.tipo==="Oferta";}).length, cS=lista.filter(function(e){return e.tipo==="Servicio";}).length;
-    var movs={}; lista.forEach(function(e){movs[e.mov]=1;});
-    if(ST.sede==="todas") flota().forEach(function(x){movs[x]=1;});
-    var rows=Object.keys(movs).map(Number).sort(function(a,b){return a-b;});
-    var est=(typeof RAW_DATA!=="undefined"&&RAW_DATA&&RAW_DATA.calendarioEstado)||null, sync="";
-    if(est&&est.ultimaCorrida){var mins=Math.round((Date.now()-new Date(est.ultimaCorrida).getTime())/60000);
-      var cls=(!est.exito)?"bad":(mins>120?"warn":"ok");
-      sync='<span class="rc-sync '+cls+'">'+(!est.exito?"La última sincronización falló: "+esc(est.mensaje):"Calendario sincronizado hace "+(mins<60?mins+" min":Math.round(mins/60)+" h"))+" · "+est.reservasEncontradas+" reservas en total</span>";}
-    var dias=""; for(var i=1;i<=n;i++){var d=new Date(y,m,i),we=(d.getDay()===0||d.getDay()===6)?"we":"",hh=(d.getTime()===hoy.getTime())?" hoy":"";dias+='<span class="'+we+hh+'">'+i+'</span>';}
-    var hoyPct=(hoy.getFullYear()===y&&hoy.getMonth()===m)?((hoy.getDate()-0.5)/n*100):null;
-    var filas=rows.map(function(mv){
-      var bars=lista.filter(function(e){return e.mov===mv;}).map(function(e){
-        var sd=(e.fi.getFullYear()===y&&e.fi.getMonth()===m)?e.fi.getDate():1, ed=(e.ff.getFullYear()===y&&e.ff.getMonth()===m)?e.ff.getDate():n;
-        var c=COL[e.sede]||"#6366f1", cls=e.tipo==="Servicio"?"srv":e.tipo==="Oferta"?"ofe":"", w=ed-sd+1;
-        var lbl=w>=2?(e.tipo==="Servicio"?"Servicio":(e.tipo==="Oferta"?"Oferta ":"")+"#"+e.num):"";
-        var sel=(ST.sel&&ST.sel.num===e.num&&ST.sel.tipo===e.tipo)?" sel":"";
-        return '<div class="rc-b '+cls+sel+'" style="left:'+((sd-1)/n*100)+'%;width:'+(w/n*100)+'%;background:'+c+';color:'+(cls==="ofe"?c:"#fff")+'" title="'+esc(e.tipo+" "+e.num+" · M"+e.mov+" · "+ddmm(e.fi)+" al "+ddmm(e.ff)+" · "+(SEDN[e.sede]||e.sede))+'" onclick="RC.det(\''+id+'\','+mv+',\''+esc(e.num)+'\',\''+e.tipo+'\')">'+esc(lbl)+'</div>';
-      }).join("");
-      var pt=patente(mv);
-      return '<div class="rc-r"><div class="rc-mv">M'+mv+(pt?'<small>'+esc(pt)+'</small>':'')+'</div><div class="rc-l" style="--n:'+n+'">'+bars+(hoyPct!=null?'<div class="rc-hoyl" style="left:'+hoyPct+'%"></div>':'')+'</div></div>';
-    }).join("");
-    var sedeOpts='<option value="todas">Todas las sedes</option>'+Object.keys(sedes).sort().map(function(s){return '<option value="'+s+'"'+(ST.sede===s?" selected":"")+'>'+esc(SEDN[s]||s)+'</option>';}).join("");
-    var leg=Object.keys(sedes).sort().map(function(s){return '<span><i style="background:'+(COL[s]||"#6366f1")+'"></i>'+esc(SEDN[s]||s)+'</span>';}).join("");
-    el.innerHTML='<div class="rc"><div class="rc-bar"><button onclick="RC.nav(-1)">◀</button><span class="rc-mes">'+MESES[m]+' '+y+'</span><button onclick="RC.nav(1)">▶</button><button onclick="RC.hoy()">Hoy</button><select onchange="RC.sede(this.value)">'+sedeOpts+'</select><button onclick="RC.recargar()" style="margin-left:auto">↻ Actualizar</button></div>'+
-      (sync?sync:"")+
-      '<div class="rc-chips"><div class="rc-chip"><b>'+cR+'</b>Reservas</div><div class="rc-chip"><b>'+cO+'</b>Ofertas</div><div class="rc-chip"><b>'+cS+'</b>Servicios (móvil bloqueado)</div></div>'+
-      (all.length?'<div class="rc-wrap"><div class="rc-t"><div class="rc-h"><div></div><div class="rc-d">'+dias+'</div></div>'+filas+'</div></div>':'<div class="rc-vacio">Cargando el calendario real…</div>')+
-      '<div class="rc-leg">'+leg+'<span><i style="border:1px dashed #aaa"></i>Oferta (tentativa)</span><span><i style="background:repeating-linear-gradient(45deg,#4b5563,#4b5563 4px,#374151 4px,#374151 8px)"></i>Servicio</span></div>'+
-      '<div id="'+id+'_det"></div></div>';
-    if(ST.sel) mostrarDet(id);
-  }
-  function mostrarDet(id){
-    var s=ST.sel, box=document.getElementById(id+"_det"); if(!s||!box)return;
-    var e=datos().filter(function(x){return x.num===s.num&&x.tipo===s.tipo&&x.mov===s.mov;})[0]; if(!e){box.innerHTML="";return;}
-    var noches=Math.round((e.ff-e.fi)/86400000);
-    box.innerHTML='<div class="rc-det"><b>'+esc(e.tipo)+' N° '+esc(e.num)+'</b> · Móvil '+e.mov+(patente(e.mov)?" ("+esc(patente(e.mov))+")":"")+(e.edit?" · corregido a mano":"")+'<br>Del '+ddmm(e.fi)+'/'+e.fi.getFullYear()+' al '+ddmm(e.ff)+'/'+e.ff.getFullYear()+' · '+noches+' noche'+(noches!==1?"s":"")+' · Sede: '+esc(SEDN[e.sede]||e.sede||"—")+(e.cli?'<br>Cliente: '+esc(e.cli):'')+'</div>';
-  }
-  function todos(){pintar("resCalA");pintar("resCalB");}
-  window.RC={
-    nav:function(d){ST.m+=d;if(ST.m<0){ST.m=11;ST.y--;}if(ST.m>11){ST.m=0;ST.y++;}ST.sel=null;todos();},
-    hoy:function(){var n=new Date();ST.y=n.getFullYear();ST.m=n.getMonth();ST.sel=null;todos();},
-    sede:function(v){ST.sede=v;ST.sel=null;todos();},
-    det:function(id,mv,num,tipo){ST.sel={mov:mv,num:num,tipo:tipo};todos();},
-    recargar:function(){try{loadAndRender().then(todos);}catch(e){todos();}},
-    pintar:todos
-  };
-
-  /* reemplazar los iframes de Google Calendar por el calendario real */
-  function reemplazar(idIframe,idNuevo){
-    var f=document.getElementById(idIframe); if(!f||document.getElementById(idNuevo))return;
-    var d=document.createElement("div"); d.id=idNuevo; d.style.cssText="flex:1;overflow:auto;min-height:0;width:100%;";
-    f.parentNode.style.overflow="auto"; f.parentNode.replaceChild(d,f);
-  }
-  reemplazar("reservasIframe","resCalA"); reemplazar("opResIframe","resCalB");
-  document.querySelectorAll("#reservasContent a[href*='calendar.google'],#opResContent a[href*='calendar.google']").forEach(function(a){a.style.display="none";});
-  var selVista=document.querySelector("#opResContent select"); if(selVista)selVista.style.display="none";
-
-  /* pestaña Reservas dentro del dashboard de supervisores */
-  window.abrirPestañaReservas=function(){
-    if(OK.a){document.getElementById("reservasLock").style.display="none";document.getElementById("reservasContent").style.display="flex";todos();}
-    else{document.getElementById("reservasLock").style.display="flex";document.getElementById("reservasContent").style.display="none";document.getElementById("reservasPassInput").value="";document.getElementById("reservasPassError").style.display="none";}
-  };
-  window.verificarPassReservas=function(){
-    var inp=document.getElementById("reservasPassInput"),err=document.getElementById("reservasPassError");
-    if(inp.value===RESERVAS_PASS){OK.a=true;err.style.display="none";document.getElementById("reservasLock").style.display="none";document.getElementById("reservasContent").style.display="flex";todos();}
-    else{err.style.display="block";inp.value="";inp.focus();setTimeout(function(){err.style.display="none";},3000);}
-  };
-  window.cerrarReservas=function(){OK.a=false;document.getElementById("reservasLock").style.display="flex";document.getElementById("reservasContent").style.display="none";};
-
-  /* frame Reservas de Gestión operativa */
-  window.opAbrirReservasFrame=function(){
-    ["opInicio","opCel","opPC"].forEach(function(i){var e=document.getElementById(i);if(e)e.style.display="none";});
-    var fr=document.getElementById("opReservas"); if(fr){fr.style.display="flex";fr.style.flexDirection="column";}
-    if(OK.b)window.opMostrarCalRes();
-    else{document.getElementById("opResLock").style.display="flex";document.getElementById("opResContent").style.display="none";document.getElementById("opResPass").value="";}
-  };
-  window.opVerificarPassRes=function(){
-    var v=document.getElementById("opResPass").value,err=document.getElementById("opResPassError");
-    if(v===OP_RES_PASS){OK.b=true;err.style.display="none";window.opMostrarCalRes();}
-    else{document.getElementById("opResPass").value="";err.style.display="block";setTimeout(function(){err.style.display="none";},2500);}
-  };
-  window.opMostrarCalRes=function(){
-    document.getElementById("opResLock").style.display="none";
-    document.getElementById("opResContent").style.display="flex";
-    todos();
-    try{iniciarDashboard().then(todos);}catch(e){}
-  };
-  window.opCambiarVistaRes=function(){};
-  window.opCerrarSesionRes=function(){OK.b=false;document.getElementById("opResLock").style.display="flex";document.getElementById("opResContent").style.display="none";document.getElementById("opResPass").value="";};
-  setInterval(function(){if(OK.a||OK.b)todos();},60000);
-
-  /* móvil nuevo: si no tiene ningún ítem de mantenimiento, se le cargan los del catálogo (sin activar) */
-  if(typeof buildVehicles==="function"){
-    var _bv=buildVehicles;
-    window.buildVehicles=buildVehicles=function(data){
-      try{
-        var mapa=getMovilAPatenteActivo(), elim=new Set(STATE.catalogoEliminados||[]);
-        var cat=(STATE.catalogo&&STATE.catalogo.length)?STATE.catalogo:CATALOGO_DEFAULT;
-        Object.keys(mapa).forEach(function(mv){
-          var pat=mapa[mv]; if(!pat)return;
-          var tiene=(data.mantenimiento||[]).some(function(r){return r.patente===pat;})||MANT_EMBED.some(function(r){return r.patente===pat;});
-          if(!tiene){
-            if(!data.mantenimiento)data.mantenimiento=[];
-            cat.forEach(function(c){if(!elim.has(c.item))data.mantenimiento.push({patente:pat,item:c.item,proximoKm:null,vtoItv:""});});
-          }
-        });
-      }catch(e){console.warn("Parche móvil nuevo:",e);}
-      return _bv(data);
-    };
-  }
 })();
 </script>
 
