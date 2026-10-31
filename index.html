@@ -1611,6 +1611,7 @@ table.op-tbl{width:100%;border-collapse:collapse;min-width:640px}
       </select>
       <input id="resBuscar" type="text" placeholder="Buscar nombre, N° reserva, mail, teléfono…" oninput="renderReservasTab()" style="flex:1;min-width:200px;background:var(--panel-2);border:1px solid var(--border);border-radius:7px;color:var(--text);padding:6px 10px;font-size:12px;">
       <button class="btn" style="font-size:12px;padding:6px 12px;" onclick="cargarReservasClientes(true)">↻ Actualizar</button>
+      <button class="btn" style="font-size:12px;padding:6px 12px;" onclick="trasladoMasivoMoviles()" title="Ej.: en Bariloche, las reservas del móvil 17 del panel pasan a ser del 21">🔁 Reasignar móviles</button>
     </div>
     <div id="resEstado" style="font-size:11px;color:var(--muted);margin-bottom:8px;"></div>
     <div class="panel"><div id="resLista"></div></div>
@@ -6190,6 +6191,7 @@ function guardarCambioMovilReserva(tipo, numero, restaurar){
   document.getElementById("cambiarMovilTemp")?.remove();
   document.getElementById("recCalDayDetail").innerHTML = "";
   renderReclamosTab();
+  try{ renderReservasTab(); }catch(e){}
   showToast(`${tipo} ${numero} → Móvil ${nuevo}.`);
 }
 
@@ -11766,6 +11768,38 @@ async function cargarReservasClientes(forzar){
   }catch(e){ RES_CLI.error = "No se pudieron leer las reservas: " + e.message; }
   RES_CLI.cargando = false; renderReservasTab();
 }
+// Móvil que sale realmente en una reserva: el corregido a mano en el dashboard (si lo hay) o el del panel.
+function resPanelDe(num){ return (RAW_DATA.calendarioPanel||[]).find(x => String(x.numeroReserva)===String(num) && (x.estado||"Reserva")==="Reserva"); }
+function resMovilReal(r){ const p = resPanelDe(r.numero); return p && p.movil ? p.movil : (Number(r.movil)||null); }
+function resMovilHtml(r){
+  const p = resPanelDe(r.numero), real = resMovilReal(r);
+  if(!real) return `<span style="color:var(--muted);">sin móvil</span>`;
+  const cambiado = p && p.movilEditado;
+  const pill = `<span style="font-weight:700;padding:1px 7px;border-radius:99px;background:${cambiado?"var(--amber)":"var(--panel-3)"};color:${cambiado?"#000":"var(--text)"};">M${real}</span>`;
+  const nota = cambiado ? ` <span style="color:var(--muted);font-size:10.5px;">(panel: M${p.movilSistema})</span>` : "";
+  const btn = p ? ` <a href="#" title="Cambiar móvil real" style="text-decoration:none;" onclick="cambiarMovilReserva('Reserva','${pvEsc(r.numero)}');return false;">🔁</a>` : "";
+  return pill + nota + btn;
+}
+// Reasigna de una vez todas las reservas de un móvil del panel (en una sede, desde una fecha) a otro móvil real.
+function trasladoMasivoMoviles(){
+  const sede = (prompt("Sede de las reservas a reasignar (CBA, BSAS, BRC, SALTA):", "BRC")||"").trim().toUpperCase(); if(!sede) return;
+  const panel = Number(prompt("Móvil que figura en el panel (el que aparece hoy en esas reservas):", "")); if(!panel) return;
+  const real = Number(prompt("Móvil real que va a salir (ej. 21 o 23):", "")); if(!real) return;
+  const desde = (prompt("Desde qué fecha de inicio (AAAA-MM-DD):", "2026-11-01")||"").trim(); if(!/^\d{4}-\d{2}-\d{2}$/.test(desde)) return;
+  const L = (RAW_DATA.calendarioPanel||[]).filter(x => (x.estado||"Reserva")==="Reserva" && x.sede===sede && x.movilSistema===panel && x.fechaInicio && fmtISO(x.fechaInicio) >= desde);
+  if(!L.length){ showToast("No hay reservas con esos datos."); return; }
+  if(!confirm(`Cambiar ${L.length} reserva(s) de ${sede}: móvil ${panel} del panel → móvil ${real}, desde ${desde}?`)) return;
+  const loc = (() => { try{ return JSON.parse(localStorage.getItem("cinzia_movil_override")||"{}"); }catch(e){ return {}; } })();
+  L.forEach(r => {
+    const clave = `Reserva-${r.numeroReserva}`;
+    loc[clave] = { v:real, ts:Date.now() };
+    r.movil = real; r.movilEditado = (real !== r.movilSistema);
+    enviarRegistro("reserva_movil", { clave, numeroReserva:clave, movil:real });
+  });
+  try{ localStorage.setItem("cinzia_movil_override", JSON.stringify(loc)); }catch(e){}
+  renderReservasTab(); try{ renderReclamosTab(); }catch(e){}
+  showToast(`${L.length} reserva(s) → Móvil ${real}.`);
+}
 function renderReservasTab(){
   const el = document.getElementById("resLista"); if(!el) return;
   const est = document.getElementById("resEstado");
@@ -11784,13 +11818,19 @@ function renderReservasTab(){
     return true;
   });
   L.sort((a,b) => (a.inicio < b.inicio ? -1 : a.inicio > b.inicio ? 1 : 0));
+  // Resumen de móviles por sede (según lo que se ve): aclara con qué móviles se cubre cada sede.
+  if(est && L.length){
+    const cnt = {}; L.forEach(r => { const k = String(r.sede).toUpperCase() + "|" + (resMovilReal(r) || "?"); cnt[k] = (cnt[k]||0) + 1; });
+    const porSede = {}; Object.keys(cnt).forEach(k => { const [s,m] = k.split("|"); (porSede[s] = porSede[s]||[]).push(`M${m} ×${cnt[k]}`); });
+    est.innerHTML += `<div style="margin-top:4px;">${Object.keys(porSede).sort().map(s => `<b>${s}</b>: ${porSede[s].join(", ")}`).join(" &nbsp;·&nbsp; ")}</div>`;
+  }
   if(!L.length){ el.innerHTML = `<div class="panel-empty">${RES_CLI.error ? "" : "No hay reservas con ese filtro."}</div>`; return; }
   const fd = iso => { const p = String(iso||"").split("-"); return p.length===3 ? `${p[2]}/${p[1]}` : "—"; };
   const tel = t => { const n = String(t||"").replace(/[^\d+]/g,""); return n ? `<a href="tel:${n}" style="color:var(--accent);">${pvEsc(t)}</a> <a href="https://wa.me/${n.replace(/^\+/,"")}" target="_blank" rel="noopener" title="WhatsApp" style="text-decoration:none;">💬</a>` : "—"; };
   el.innerHTML = `<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:12px;">
     <thead><tr style="text-align:left;color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;">
       <th style="padding:6px 8px;">N°</th><th style="padding:6px 8px;">Cliente</th><th style="padding:6px 8px;">Teléfono</th><th style="padding:6px 8px;">Mail</th>
-      <th style="padding:6px 8px;">Sede</th><th style="padding:6px 8px;">Vehículo</th><th style="padding:6px 8px;">Sale</th><th style="padding:6px 8px;">Vuelve</th><th style="padding:6px 8px;"></th></tr></thead><tbody>` +
+      <th style="padding:6px 8px;">Sede</th><th style="padding:6px 8px;">Vehículo / Móvil real</th><th style="padding:6px 8px;">Sale</th><th style="padding:6px 8px;">Vuelve</th><th style="padding:6px 8px;"></th></tr></thead><tbody>` +
     L.map(r => {
       const sale = r.inicio === hoy, vuelve = r.fin === hoy;
       const mk = (iso, hoyFlag) => `<span style="${hoyFlag?"font-weight:700;color:var(--amber);":""}">${fd(iso)}${hoyFlag?" · HOY":""}</span>`;
@@ -11800,7 +11840,7 @@ function renderReservasTab(){
         <td style="padding:7px 8px;white-space:nowrap;">${tel(r.tel)}</td>
         <td style="padding:7px 8px;">${r.email ? `<a href="mailto:${pvEsc(r.email)}" style="color:var(--accent);">${pvEsc(r.email)}</a>` : "—"}</td>
         <td style="padding:7px 8px;">${pvEsc(r.sede)}</td>
-        <td style="padding:7px 8px;">${pvEsc(r.modelo)}${r.movil ? ` <span style="color:var(--muted);">(reserva: M${pvEsc(r.movil)})</span>` : ""}</td>
+        <td style="padding:7px 8px;">${pvEsc(r.modelo)} ${resMovilHtml(r)}</td>
         <td style="padding:7px 8px;white-space:nowrap;">${mk(r.inicio, sale)}</td>
         <td style="padding:7px 8px;white-space:nowrap;">${mk(r.fin, vuelve)}</td>
         <td style="padding:7px 8px;">${r.link ? `<a href="${pvEsc(r.link)}" target="_blank" rel="noopener" style="color:var(--accent);">enlace ↗</a>` : ""}</td></tr>`;
@@ -12997,7 +13037,24 @@ function pedirClave(){
   document.getElementById("opPassOk").onclick = probar; document.getElementById("opPassX").onclick = cerrar;
   inp.addEventListener("keydown", e => { if(e.key === "Enter") probar(); if(e.key === "Escape") cerrar(); });
 }
+const CLAVE_RES_HASH = 896276087864649;   // hash de la contraseña de Reservas (no se guarda en texto plano)
+const resAutorizado = () => { try{ return sessionStorage.getItem("cinzia_res") === "1" || localStorage.getItem("cinzia_res_rec") === "1"; }catch(e){ return false; } };
+function pedirClaveRes(){
+  const old = document.getElementById("opPass"); if(old) old.remove();
+  document.body.insertAdjacentHTML("beforeend", '<div id="opPass" class="op" style="position:fixed;inset:0;z-index:1150;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;padding:16px;"><div class="op-modal" style="max-width:380px;"><div class="op-m-t"><span>🔒 Reservas</span><button class="op-m-x" id="opPassX">✕</button></div><div class="op-m-field"><label>Contraseña</label><input type="password" id="opPassIn" autocomplete="off" placeholder="Ingresá la contraseña"></div><div id="opPassErr" style="color:var(--bad);font-size:12px;min-height:16px;margin-bottom:6px;"></div><label style="display:flex;gap:8px;align-items:center;font-size:12px;color:var(--fog);margin-bottom:6px;cursor:pointer;"><input type="checkbox" id="opPassRec"> Recordar en este equipo</label><div class="op-m-row"><button class="op-m-btn pri" id="opPassOk">Entrar</button></div></div></div>');
+  const inp = document.getElementById("opPassIn"); inp.focus();
+  const cerrar = () => { const p = document.getElementById("opPass"); if(p) p.remove(); };
+  const probar = () => {
+    if(h53(inp.value.trim().toLowerCase()) === CLAVE_RES_HASH){
+      try{ sessionStorage.setItem("cinzia_res","1"); if(document.getElementById("opPassRec").checked) localStorage.setItem("cinzia_res_rec","1"); }catch(e){}
+      cerrar(); entrarReservas();
+    } else { document.getElementById("opPassErr").textContent = "Contraseña incorrecta"; inp.select(); }
+  };
+  document.getElementById("opPassOk").onclick = probar; document.getElementById("opPassX").onclick = cerrar;
+  inp.addEventListener("keydown", e => { if(e.key === "Enter") probar(); if(e.key === "Escape") cerrar(); });
+}
 function entrarReservas(){
+  if(!resAutorizado() && !supAutorizado()){ pedirClaveRes(); return; }
   document.body.classList.add("solo-res");
   ver("sup"); setHash("reservas");
   const l = $("supLoading"); l.style.display = "flex";
